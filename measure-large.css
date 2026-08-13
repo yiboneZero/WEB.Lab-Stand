@@ -1,0 +1,85 @@
+.measure-screen {
+  width: min(100%, 760px);
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.measure-copy {
+  padding: 22px 4px 12px;
+}
+
+.measure-copy > p:last-child {
+  margin-top: 8px;
+}
+
+.canvas-wrap {
+  min-height: 0;
+}
+
+.canvas-wrap canvas {
+  max-height: 72dvh;
+}
+
+.tap-hint {
+  width: 38px;
+  height: 38px;
+  font-size: 14px;
+}
+
+.camera-top span {
+  line-height: 1.35;
+}
+
+.camera-top span b {
+  color: var(--green);
+  font-size: 14px;
+}
+
+.frame > em {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  padding: 6px 10px;
+  border-radius: 99px;
+  background: rgba(0, 0, 0, .62);
+  color: white;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.camera-screen .level-wrap {
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  padding: 14px 18px;
+}
+
+.home .setup-visual .putter {
+  left: 50%;
+  top: 12px;
+  width: 4px;
+  height: 72px;
+  transform: rotate(-8deg);
+  transform-origin: bottom;
+}
+
+.home .setup-visual .putter::before {
+  left: -18px;
+  top: 66px;
+  width: 38px;
+  height: 10px;
+}
+
+.home .setup-visual .putter::after {
+  left: -2px;
+  right: auto;
+  top: -2px;
+  width: 8px;
+  height: 18px;
+}
+
+.home .setup-visual .ball {
+  left: 66%;
+  top: 54px;
+}

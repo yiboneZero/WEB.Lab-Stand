@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#0b0d0c">
+  <meta name="description" content="세워 놓은 퍼터의 솔 바닥 기준점부터 그립 끝까지 측정하는 모바일 웹앱">
+  <title>WEB.Lab-Stand — Putter Measure</title>
+  <link rel="stylesheet" href="style.css?v=20260813-3">
+  <link rel="stylesheet" href="measure-large.css?v=3">
+  <style>.ball-confirm{margin-top:12px;padding:14px;border:1px solid #a7c66a;border-radius:16px;background:#effbd9}.ball-confirm>span{display:block;margin-bottom:8px;font-size:12px;font-weight:750}.size-control{display:grid!important;grid-template-columns:auto 1fr auto!important;align-items:center;gap:8px!important;margin-bottom:12px}.size-control label,.size-control output{font-size:11px;font-weight:800}.size-control input{width:100%;accent-color:#456d00}.ball-confirm>.confirm-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.ball-confirm .compact{min-height:40px;margin:0;padding:0 7px;border-radius:11px;font-size:11px}.ball-confirm .primary{background:#456d00}</style>
+  <style>.file-picker{position:relative;overflow:hidden}.file-picker input{display:block!important;position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;font-size:100px}.diagnostic-result{margin-top:12px;padding:16px;border-radius:16px;background:#e9f8ce;color:#294600}.diagnostic-result div{display:flex;justify-content:space-between;gap:15px;padding:5px 0;font-size:12px}.diagnostic-result b{font-variant-numeric:tabular-nums}.adjust-panel{margin-top:12px;padding:14px;border:1px solid #ffc2b3;border-radius:16px;background:#fff0eb}.adjust-panel b,.adjust-panel span{display:block}.adjust-panel b{font-size:13px}.adjust-panel span{margin-top:5px;color:#76584f;font-size:11px;line-height:1.45}.adjust-panel .primary{margin-top:12px;min-height:48px;background:#e94f2a}.adjust-panel .primary:disabled{opacity:.48;cursor:not-allowed}.canvas-wrap.adjusting{box-shadow:0 0 0 3px #ff633f}.canvas-wrap.adjusting canvas{cursor:grab}.canvas-wrap.adjusting canvas:active{cursor:grabbing}</style>
+  <style>.tap-hint[hidden]{display:none!important}</style>
+</head>
+<body>
+  <main>
+    <section id="homeScreen" class="screen home active">
+      <header><div class="brand"><b>WEB</b>.Lab-Stand</div><span class="badge">MOBILE</span></header>
+      <div class="hero-copy">
+        <p class="eyebrow">STANDING PUTTER MEASURE</p>
+        <h1>퍼터를 세워서<br>길이를 측정.</h1>
+        <p>퍼터를 정상 라이각으로 세우고 골프공과 같은 수직 평면에 배치하세요. 휴대폰을 정면에서 수직으로 세우면 자동 촬영합니다.</p>
+      </div>
+      <div class="setup-card">
+        <div class="setup-visual" aria-hidden="true"><span class="ball"></span><span class="putter"></span></div>
+        <ol>
+          <li><b>퍼터를 정상 라이각으로 세우기</b><span>솔 바닥면이 지면에 자연스럽게 닿도록 배치</span></li>
+          <li><b>골프공을 같은 수직 평면에 배치</b><span>공인 지름 42.67mm를 측정 기준으로 사용</span></li>
+          <li><b>1× 카메라로 정면 촬영</b><span>휴대폰 수직 오차 ±1.5° 이내에서 자동 촬영</span></li>
+        </ol>
+      </div>
+      <button id="startButton" class="primary">카메라 시작</button>
+      <label class="secondary file-picker" for="fileInput">기존 사진 불러오기<input id="fileInput" type="file" accept="image/*" aria-label="기존 사진 선택"></label>
+      <p class="privacy">사진은 서버에 전송되지 않고 이 기기에서만 처리됩니다.</p>
+    </section>
+
+    <section id="cameraScreen" class="screen camera-screen">
+      <video id="camera" playsinline muted></video>
+      <div class="camera-shade"></div>
+      <div class="camera-top"><button id="closeCamera" aria-label="카메라 닫기">×</button><span><b>세운 퍼터 전체와 골프공을</b><br>같은 평면의 촬영 테두리 안에 넣어주세요</span></div>
+      <div class="frame"><em>이 테두리 안쪽만 촬영됩니다</em><span></span><span></span><span></span><span></span></div>
+      <div class="level-wrap">
+        <div id="level" class="level"><i></i><b></b></div>
+        <strong id="levelTitle">센서 준비 중</strong>
+        <span id="levelDetail">휴대폰을 정면에서 수직으로 세워주세요</span>
+      </div>
+      <div id="countdown" class="countdown" aria-live="assertive"></div>
+    </section>
+
+    <section id="measureScreen" class="screen measure-screen">
+      <header><button id="retakeButton" class="back">‹ 다시 촬영</button><div class="brand"><b>WEB</b>.Lab-Stand</div></header>
+        <div class="measure-copy"><p class="eyebrow">CALIBRATION</p><h2 id="stepTitle">골프공을 터치하세요</h2><p id="stepHelp">터치점을 중심으로 원형 영역을 만들고 그 안에서 자동으로 찾습니다.</p></div>
+        <div id="canvasWrap" class="canvas-wrap"><canvas id="photoCanvas"></canvas><div id="tapHint" class="tap-hint">1</div></div>
+        <div id="ballConfirm" class="ball-confirm" hidden><span>초록색 원을 골프공 테두리에 맞춰주세요.</span><div class="size-control"><label for="ballSize">크기</label><input id="ballSize" type="range" min="70" max="130" value="100" step="1"><output id="ballSizeValue">100%</output></div><div class="confirm-actions"><button id="confirmBall" class="primary compact">맞아요</button><button id="retryBall" class="secondary button compact">다시 선택</button></div></div>
+        <div id="adjustPanel" class="adjust-panel" hidden><b>측정 기준점을 선택하세요</b><span>그립 끝과 솔의 바닥 접촉 기준점을 차례로 선택하세요.</span><button id="confirmPutter" class="primary" disabled>두 점을 선택하면 측정할 수 있습니다</button></div>
+      <div class="progress"><i id="progressBar"></i></div>
+    </section>
+
+    <section id="resultScreen" class="screen result-screen">
+      <header><div class="brand"><b>WEB</b>.Lab-Stand</div><span class="badge">RESULT</span></header>
+      <p class="eyebrow">MEASURED LENGTH</p>
+      <h2>측정 결과</h2>
+      <div class="result-card"><span>솔 바닥 기준점부터 그립 끝까지</span><strong id="resultCm">—</strong><em>cm</em><div><b id="resultIn">—</b> inch</div></div>
+      <div class="diagnostic-result"><div><span>공 검출 지름</span><b id="ballPixelDiameter">—</b></div><div><span>퍼터 선택점 거리</span><b id="putterPixelLength">—</b></div></div>
+      <div class="accuracy"><b>골프공 기준 비율 측정</b><p>골프공의 실제 지름 42.67mm와 이미지 속 픽셀 비율을 사용해 퍼터 길이를 계산합니다.</p></div>
+      <button id="newMeasure" class="primary">다시 측정하기</button>
+    </section>
+  </main>
+  <canvas id="captureCanvas" hidden></canvas>
+  <script src="app.stand.v1.js"></script>
+</body>
+</html>
