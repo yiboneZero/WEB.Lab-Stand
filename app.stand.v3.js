@@ -1,6 +1,7 @@
 const BALL_MM = 42.67;
 const TILT_LIMIT = 1.5;
 const STABLE_MS = 1000;
+const IS_IPAD = /iPad/i.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
 const screens = [...document.querySelectorAll('.screen')];
 const video = document.querySelector('#camera');
 const captureCanvas = document.querySelector('#captureCanvas');
@@ -11,12 +12,12 @@ let ballMode = 'auto', ballCandidate = null, searchRegion = null;
 let draggedPoint = -1;
 let dragOffset = {x:0,y:0};
 let currentHorizontalTilt = 0, captureHorizontalTilt = null, shaftDetection = null;
-let tiltSamplesX = [], tiltSamplesY = [], lastGravityAt = 0;
+let tiltSamplesX = [], tiltSamplesY = [], lastGravityAt = 0, lastOrientationAt = 0;
 
 function show(id){ screens.forEach(s=>s.classList.toggle('active',s.id===id)); }
 function stopCamera(){ if(stream) stream.getTracks().forEach(t=>t.stop()); stream=null; window.removeEventListener('deviceorientation',onOrientation); window.removeEventListener('devicemotion',onMotion); window.removeEventListener('orientationchange',resetTiltSamples); screen.orientation?.removeEventListener?.('change',resetTiltSamples); }
 function screenAngle(){const value=screen.orientation?.angle??window.orientation??0;return((Number(value)||0)%360+360)%360;}
-function resetTiltSamples(){tiltSamplesX=[];tiltSamplesY=[];gravityAvailable=false;lastGravityAt=0;stableSince=0;cancelCountdown();}
+function resetTiltSamples(){tiltSamplesX=[];tiltSamplesY=[];gravityAvailable=false;lastGravityAt=0;lastOrientationAt=0;stableSince=0;cancelCountdown();}
 function smoothTilt(x,y){
   tiltSamplesX.push(x);tiltSamplesY.push(y);if(tiltSamplesX.length>9)tiltSamplesX.shift();if(tiltSamplesY.length>9)tiltSamplesY.shift();
   if(tiltSamplesX.length<3)return{x,y};return{x:median(tiltSamplesX),y:median(tiltSamplesY)};
@@ -44,7 +45,7 @@ async function requestSensors(){
 
 function onMotion(e){
   const gravity=e.accelerationIncludingGravity;
-  if(gravity&&gravity.x!=null&&gravity.y!=null&&gravity.z!=null){
+  if((!IS_IPAD||performance.now()-lastOrientationAt>1000)&&gravity&&gravity.x!=null&&gravity.y!=null&&gravity.z!=null){
     const gx=gravity.x,gy=gravity.y,gz=gravity.z,magnitude=Math.hypot(gx,gy,gz);
     if(magnitude>6&&magnitude<13){
       gravityAvailable=true;lastGravityAt=performance.now();
@@ -73,7 +74,8 @@ async function startCamera(){
 }
 
 function onOrientation(e){
-  if(captured||(gravityAvailable&&performance.now()-lastGravityAt<700)) return;
+  if(captured||(!IS_IPAD&&gravityAvailable&&performance.now()-lastGravityAt<700)) return;
+  lastOrientationAt=performance.now();
   gravityAvailable=false;
   const angle=screenAngle(),beta=e.beta??0,gamma=e.gamma??99;
   let x=gamma,y=Math.abs(beta)-90;
