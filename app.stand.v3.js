@@ -150,11 +150,11 @@ function updateStep(){
   else if(points.length<2){title.textContent='검출된 골프공을 확인하세요';help.textContent='초록색 원이 공 외곽과 맞으면 확인하고, 아니면 다시 선택하세요.';}
   else if(points.length===2){stage=2;title.textContent='퍼터 그립 끝을 선택하세요';help.textContent='그립의 가장 아래쪽 끝을 한 번 터치하세요.';}
   else if(points.length===3){stage=3;title.textContent='퍼터 솔의 바닥 기준점을 선택하세요';help.textContent='퍼터 헤드 바닥면이 지면에 닿는 기준점을 터치하세요.';}
-  else{stage=4;title.textContent='선택점 위치를 보정하세요';help.textContent='주황색 두 점을 드래그해 맞춘 뒤 측정 버튼을 누르세요.';}
+  else{stage=4;title.textContent='선택점 위치를 보정하세요';help.textContent='주황색 점을 드래그해 놓으면 두 점을 잇는 선 방향의 외곽선에 자동으로 맞춰집니다.';}
   panel.hidden=points.length<2;confirm.disabled=points.length<4;
   if(points.length===2){panelTitle.textContent='퍼터 그립 끝을 선택하세요';panelHelp.textContent='사진에서 그립의 가장 아래쪽 끝을 터치하세요.';confirm.textContent='두 점을 선택하면 측정할 수 있습니다';}
   else if(points.length===3){panelTitle.textContent='퍼터 솔의 바닥 기준점을 선택하세요';panelHelp.textContent='헤드 바닥면이 지면에 닿는 기준점을 터치하세요.';confirm.textContent='바닥 기준점을 선택해 주세요';}
-  else if(points.length>=4){panelTitle.textContent='측정 기준점을 보정하세요';panelHelp.textContent='주황색 두 점을 그립 끝과 솔의 바닥 기준점에 맞추세요.';confirm.textContent='이 위치로 측정';}
+  else if(points.length>=4){panelTitle.textContent='측정 기준점을 보정하세요';panelHelp.textContent='각 점을 끝부분 가까이에 놓으세요. 놓는 순간 선 방향의 외곽선에 자동으로 맞춰집니다.';confirm.textContent='이 위치로 측정';}
   document.querySelector('#tapHint').textContent=stage;document.querySelector('#tapHint').hidden=stage===4;document.querySelector('#progressBar').style.width=`${stage*25}%`;
 }
 function luminance(data,index){return data[index]*.299+data[index+1]*.587+data[index+2]*.114;}
@@ -314,6 +314,52 @@ function detectBallAt(x,y){
   else{ballMode='auto';searchRegion=null;alert('골프공 테두리를 찾지 못했습니다. 골프공 중심을 다시 터치하거나 다시 촬영해 주세요.');draw();updateStep();}
 }
 function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+function snapPutterEndpoint(index){
+  if(!image||points.length<4||index<2||index>3)return false;
+  const point=points[index],other=points[index===2?3:2],lineLength=distance(point,other);if(lineLength<40)return false;
+  const ux=(point.x-other.x)/lineLength,uy=(point.y-other.y)/lineLength,nx=-uy,ny=ux;
+  const radius=Math.max(52,photoCanvas.width/11),sampleCanvas=document.createElement('canvas'),maxSide=1400,scale=Math.min(1,maxSide/Math.max(photoCanvas.width,photoCanvas.height));
+  sampleCanvas.width=Math.max(1,Math.round(photoCanvas.width*scale));sampleCanvas.height=Math.max(1,Math.round(photoCanvas.height*scale));
+  const sampleCtx=sampleCanvas.getContext('2d',{willReadFrequently:true});sampleCtx.drawImage(image,0,0,sampleCanvas.width,sampleCanvas.height);
+  const pixels=sampleCtx.getImageData(0,0,sampleCanvas.width,sampleCanvas.height).data,w=sampleCanvas.width,h=sampleCanvas.height;
+  const tone=(x,y)=>{const px=Math.round(x*scale),py=Math.round(y*scale);if(px<1||py<1||px>=w-1||py>=h-1)return null;return luminance(pixels,(py*w+px)*4);};
+  const scanStep=Math.max(1.5,1.5/scale),gradientGap=Math.max(2.5,2.5/scale),corridor=radius*.24,rayCount=9,peaks=[];
+  for(let ray=0;ray<rayCount;ray++){
+    const offset=-corridor+ray/(rayCount-1)*corridor*2,profile=[];
+    for(let s=-radius*.12;s<=radius*.94;s+=scanStep){
+      if(Math.hypot(s,offset)>radius*.96)continue;
+      const x=point.x+ux*s+nx*offset,y=point.y+uy*s+ny*offset;
+      const before=tone(x-ux*gradientGap,y-uy*gradientGap),after=tone(x+ux*gradientGap,y+uy*gradientGap);if(before==null||after==null)continue;
+      profile.push({s,offset,x,y,g:Math.abs(after-before)});
+    }
+    if(profile.length<8)continue;
+    const gradients=profile.map(p=>p.g),base=median(gradients),mad=median(gradients.map(v=>Math.abs(v-base))),threshold=base+Math.max(9,mad*2.8);
+    for(let i=1;i<profile.length-1;i++)if(profile[i].g>=threshold&&profile[i].g>=profile[i-1].g&&profile[i].g>=profile[i+1].g)peaks.push({...profile[i],ray});
+  }
+  if(peaks.length<4)return false;
+  const binSize=scanStep*3.2,groups=new Map();
+  for(const peak of peaks){const key=Math.round(peak.s/binSize);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(peak);}
+  const ballCenter={x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2},ballPx=distance(points[0],points[1]);
+  const rollRad=(captureHorizontalTilt||0)*Math.PI/180,down={x:-Math.sin(rollRad),y:Math.cos(rollRad)},groundDir={x:Math.cos(rollRad),y:Math.sin(rollRad)};
+  const ground={x:ballCenter.x+down.x*ballPx/2,y:ballCenter.y+down.y*ballPx/2},groundDistance=p=>Math.abs((p.x-ground.x)*groundDir.y-(p.y-ground.y)*groundDir.x);
+  const candidates=[];
+  for(const group of groups.values()){
+    const rays=new Set(group.map(p=>p.ray));if(rays.size<4)continue;
+    const s=median(group.map(p=>p.s)),offset=median(group.map(p=>p.offset)),strength=median(group.map(p=>p.g));if(s<0||s>radius*.94)continue;
+    const candidate={x:point.x+ux*s+nx*offset,y:point.y+uy*s+ny*offset,s,offset,strength,support:rays.size};
+    candidate.groundDistance=groundDistance(candidate);candidates.push(candidate);
+  }
+  if(!candidates.length)return false;
+  let eligible=candidates;
+  if(index===3){const groundTolerance=Math.max(ballPx*.34,8/scale);const nearGround=candidates.filter(c=>c.groundDistance<=groundTolerance);if(nearGround.length)eligible=nearGround;else return false;}
+  eligible.sort((a,b)=>b.s-a.s||b.support-a.support||b.strength-a.strength||Math.abs(a.offset)-Math.abs(b.offset));
+  const best=eligible[0];if(!best||best.s<scanStep*2)return false;
+  points[index]={x:Math.max(0,Math.min(photoCanvas.width,best.x)),y:Math.max(0,Math.min(photoCanvas.height,best.y))};return true;
+}
+function snapPutterEndpoints(){
+  const gripSnapped=snapPutterEndpoint(2),soleSnapped=snapPutterEndpoint(3);
+  return gripSnapped||soleSnapped;
+}
 function fitLinePca(samples){
   if(samples.length<2)return null;
   const cx=samples.reduce((s,p)=>s+p.x,0)/samples.length,cy=samples.reduce((s,p)=>s+p.y,0)/samples.length;
@@ -434,10 +480,10 @@ photoCanvas.addEventListener('pointerdown',e=>{
 });
 photoCanvas.addEventListener('pointermove',e=>{if(draggedPoint<2)return;const p=canvasPoint(e);points[draggedPoint]={x:Math.max(0,Math.min(photoCanvas.width,p.x+dragOffset.x)),y:Math.max(0,Math.min(photoCanvas.height,p.y+dragOffset.y))};draw();e.preventDefault();});
 photoCanvas.addEventListener('pointerup',e=>{
-  if(draggedPoint>=2){draggedPoint=-1;dragOffset={x:0,y:0};shaftDetection=detectShaft();draw();return;}
+  if(draggedPoint>=2){snapPutterEndpoint(draggedPoint);draggedPoint=-1;dragOffset={x:0,y:0};shaftDetection=detectShaft();draw();return;}
   if(points.length>=4||ballCandidate)return;
   const p=canvasPoint(e);if(points.length===0&&ballMode==='auto')return detectBallAt(p.x,p.y);points.push({x:p.x,y:p.y});draw();updateStep();
-  if(points.length===4){shaftDetection=detectShaft();document.querySelector('#canvasWrap').classList.add('adjusting');draw();updateStep();}
+  if(points.length===4){snapPutterEndpoints();shaftDetection=detectShaft();document.querySelector('#canvasWrap').classList.add('adjusting');draw();updateStep();}
 });
 photoCanvas.addEventListener('pointercancel',()=>{draggedPoint=-1;dragOffset={x:0,y:0};draw();});
 document.querySelector('#confirmBall').addEventListener('click',()=>{if(!ballCandidate)return;points=[{x:ballCandidate.x-ballCandidate.radius,y:ballCandidate.y},{x:ballCandidate.x+ballCandidate.radius,y:ballCandidate.y}];ballCandidate=null;searchRegion=null;document.querySelector('#ballConfirm').hidden=true;draw();updateStep();});
