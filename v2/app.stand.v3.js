@@ -315,6 +315,7 @@ function detectBallAt(x,y){
 }
 function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
 function formatNearestHalf(value){return (Math.round((value+Number.EPSILON)*2)/2).toFixed(1);}
+function formatSensorCorrection(value){return `${value>=0?'+':''}${value.toFixed(3)}°`;}
 function snapPutterEndpoint(index){
   if(!image||points.length<4||index<2||index>3)return false;
   const point=points[index],other=points[index===2?3:2],lineLength=distance(point,other);if(lineLength<40)return false;
@@ -460,8 +461,8 @@ function calculate(){
   document.querySelector('#putterPixelLength').textContent=`${putterPx.toFixed(1)} px`;
   shaftDetection=detectShaft();draw();
   const angle=document.querySelector('#shaftAngle'),raw=document.querySelector('#shaftRaw'),correction=document.querySelector('#shaftCorrection'),confidence=document.querySelector('#shaftConfidence');
-  if(shaftDetection?.ok){angle.textContent=`${formatNearestHalf(shaftDetection.correctedAngle)}°`;raw.textContent=`${formatNearestHalf(shaftDetection.rawAngle)}°`;correction.textContent=shaftDetection.roll==null?'센서 정보 없음':`${shaftDetection.roll>=0?'+':''}${shaftDetection.roll.toFixed(1)}°`;confidence.textContent=`${shaftDetection.confidence}%`;}
-  else{angle.textContent='검출 실패';raw.textContent='—';correction.textContent=captureHorizontalTilt==null?'센서 정보 없음':`${captureHorizontalTilt>=0?'+':''}${captureHorizontalTilt.toFixed(1)}°`;confidence.textContent=shaftDetection?.reason||'샤프트를 찾지 못했습니다';}
+  if(shaftDetection?.ok){angle.textContent=`${formatNearestHalf(shaftDetection.correctedAngle)}°`;raw.textContent=`${formatNearestHalf(shaftDetection.rawAngle)}°`;correction.textContent=shaftDetection.roll==null?'센서 정보 없음':formatSensorCorrection(shaftDetection.roll);confidence.textContent=`${shaftDetection.confidence}%`;}
+  else{angle.textContent='검출 실패';raw.textContent='—';correction.textContent=captureHorizontalTilt==null?'센서 정보 없음':formatSensorCorrection(captureHorizontalTilt);confidence.textContent=shaftDetection?.reason||'샤프트를 찾지 못했습니다';}
   show('resultScreen');
 }
 
