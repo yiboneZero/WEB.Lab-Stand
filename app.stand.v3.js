@@ -70,10 +70,10 @@ function updateLevel(x,y){
   const horizontalTrack=document.querySelector('#horizontalTrack'),verticalTrack=document.querySelector('#verticalTrack');
   const horizontalMarker=document.querySelector('#horizontalMarker'),verticalMarker=document.querySelector('#verticalMarker');
   const displayX=Math.round(x*10)/10,displayY=Math.round(y*10)/10;
-  const radarLimit=TILT_LIMIT*(46/11),normalizedX=Math.max(-1,Math.min(1,displayX/radarLimit)),normalizedY=Math.max(-1,Math.min(1,displayY/radarLimit));
+  const radarLimit=8,normalizedX=Math.max(-1,Math.min(1,displayX/radarLimit)),normalizedY=Math.max(-1,Math.min(1,displayY/radarLimit));
   level.querySelector('i').style.transform=`translate(${normalizedX*25}px,${normalizedY*25}px)`;
-  const markerPosition=normalized=>50+normalized*46;
-  horizontalMarker.style.left=`${markerPosition(normalizedX)}%`;verticalMarker.style.top=`${markerPosition(normalizedY)}%`;
+  horizontalMarker.style.transform=`translate(-50%,-50%) translate3d(${normalizedX*101.2}px,0,0)`;
+  verticalMarker.style.transform=`translate(-50%,-50%) translate3d(0,${normalizedY*37.72}px,0)`;
   document.querySelector('#horizontalValue').textContent=`${displayX>0?'+':''}${displayX.toFixed(1)}°`;
   document.querySelector('#verticalValue').textContent=`${displayY>0?'+':''}${displayY.toFixed(1)}°`;
   horizontalTrack.classList.toggle('ok',Math.abs(x)<=TILT_LIMIT);verticalTrack.classList.toggle('ok',Math.abs(y)<=TILT_LIMIT);
