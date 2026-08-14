@@ -131,7 +131,7 @@
 .camera-screen .camera-top {
   top: calc(16px + env(safe-area-inset-top));
   left: 16px;
-  right: auto;
+  right: 16px;
   bottom: auto;
   z-index: 8;
 }
@@ -192,7 +192,7 @@
   position: absolute;
   left: 10px;
   right: 10px;
-  top: 74%;
+  top: 75%;
   bottom: calc(10px + env(safe-area-inset-bottom));
   height: auto;
   z-index: 4;
@@ -238,13 +238,13 @@
   flex-direction: column;
   justify-content: center;
   min-height: 0;
-  padding: 4px 10px 0;
+  padding: 0 10px;
 }
 
 .camera-screen .camera-bottom .level-cluster {
-  margin-top: -10px;
-  margin-bottom: -18px;
-  transform: scale(.78);
+  margin-top: -5px;
+  margin-bottom: -10px;
+  transform: scale(.9);
   transform-origin: center;
 }
 
@@ -290,9 +290,8 @@
 }
 
 @media (max-height: 700px) {
-  .camera-screen .camera-bottom {top:74%;height:auto;padding-top:7px}
-  .camera-screen .camera-bottom .capture-guide {padding:6px 10px}
-  .camera-screen .camera-bottom .level-cluster {transform:scale(.7);transform-origin:center;margin-top:-17px;margin-bottom:-27px}
+  .camera-screen .camera-bottom {top:75%;height:auto;padding-top:7px}
+  .camera-screen .camera-bottom .level-cluster {transform:scale(.78);transform-origin:center;margin-top:-13px;margin-bottom:-22px}
 }
 
 .home .setup-visual .putter {
