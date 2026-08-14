@@ -1,7 +1,6 @@
 const BALL_MM = 42.67;
 const TILT_LIMIT = 1.5;
 const STABLE_MS = 1000;
-const IS_IPAD = /iPad/i.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
 const screens = [...document.querySelectorAll('.screen')];
 const video = document.querySelector('#camera');
 const captureCanvas = document.querySelector('#captureCanvas');
@@ -12,47 +11,31 @@ let ballMode = 'auto', ballCandidate = null, searchRegion = null;
 let draggedPoint = -1;
 let dragOffset = {x:0,y:0};
 let currentHorizontalTilt = 0, captureHorizontalTilt = null, shaftDetection = null;
-let tiltSamplesX = [], tiltSamplesY = [], lastGravityAt = 0, lastOrientationAt = 0;
 
 function show(id){ screens.forEach(s=>s.classList.toggle('active',s.id===id)); }
-function stopCamera(){ if(stream) stream.getTracks().forEach(t=>t.stop()); stream=null; window.removeEventListener('deviceorientation',onOrientation); window.removeEventListener('devicemotion',onMotion); window.removeEventListener('orientationchange',resetTiltSamples); screen.orientation?.removeEventListener?.('change',resetTiltSamples); }
-function screenAngle(){const value=screen.orientation?.angle??window.orientation??0;return((Number(value)||0)%360+360)%360;}
-function resetTiltSamples(){tiltSamplesX=[];tiltSamplesY=[];gravityAvailable=false;lastGravityAt=0;lastOrientationAt=0;stableSince=0;cancelCountdown();}
-function smoothTilt(x,y){
-  tiltSamplesX.push(x);tiltSamplesY.push(y);if(tiltSamplesX.length>9)tiltSamplesX.shift();if(tiltSamplesY.length>9)tiltSamplesY.shift();
-  if(tiltSamplesX.length<3)return{x,y};return{x:median(tiltSamplesX),y:median(tiltSamplesY)};
-}
+function stopCamera(){ if(stream) stream.getTracks().forEach(t=>t.stop()); stream=null; window.removeEventListener('deviceorientation',onOrientation); window.removeEventListener('devicemotion',onMotion); }
 
 async function requestSensors(){
-  let orientationGranted=true,motionGranted=true;
   try{
     if(typeof window.DeviceOrientationEvent?.requestPermission==='function'){
       const state=await window.DeviceOrientationEvent.requestPermission();
-      orientationGranted=state==='granted';
+      if(state!=='granted') return false;
     }
-  }catch{orientationGranted=false;}
-  try{
-    if(typeof window.DeviceMotionEvent?.requestPermission==='function') motionGranted=(await window.DeviceMotionEvent.requestPermission())==='granted';
-  }catch{motionGranted=false;}
-  try{
-    if(orientationGranted)window.addEventListener('deviceorientation',onOrientation,true);
-    if(motionGranted)window.addEventListener('devicemotion',onMotion,true);
-    window.addEventListener('orientationchange',resetTiltSamples);
-    screen.orientation?.addEventListener?.('change',resetTiltSamples);
-    return orientationGranted||motionGranted;
+    if(typeof window.DeviceMotionEvent?.requestPermission==='function') await window.DeviceMotionEvent.requestPermission();
+    window.addEventListener('deviceorientation',onOrientation,true);
+    window.addEventListener('devicemotion',onMotion,true);
+    return true;
   }catch{return false;}
 }
 
 function onMotion(e){
   const gravity=e.accelerationIncludingGravity;
-  if((!IS_IPAD||performance.now()-lastOrientationAt>1000)&&gravity&&gravity.x!=null&&gravity.y!=null&&gravity.z!=null){
-    const gx=gravity.x,gy=gravity.y,gz=gravity.z,magnitude=Math.hypot(gx,gy,gz);
-    if(magnitude>6&&magnitude<13){
-      gravityAvailable=true;lastGravityAt=performance.now();
-      const rad=screenAngle()*Math.PI/180,screenX=gx*Math.cos(rad)-gy*Math.sin(rad),screenY=gx*Math.sin(rad)+gy*Math.cos(rad);
-      const tiltX=Math.atan2(screenX,Math.hypot(screenY,gz))*180/Math.PI,tiltY=Math.atan2(gz,Math.hypot(screenX,screenY))*180/Math.PI,smoothed=smoothTilt(tiltX,tiltY);
-      updateLevel(smoothed.x,smoothed.y);
-    }
+  if(gravity&&gravity.x!=null&&gravity.y!=null&&gravity.z!=null){
+    gravityAvailable=true;
+    const gx=gravity.x,gy=gravity.y,gz=gravity.z;
+    const tiltX=Math.atan2(gx,Math.hypot(gy,gz))*180/Math.PI;
+    const tiltY=Math.atan2(gz,Math.hypot(gx,gy))*180/Math.PI;
+    updateLevel(tiltX,tiltY);
   }
   const a=e.acceleration;
   if(a){
@@ -62,7 +45,7 @@ function onMotion(e){
 }
 
 async function startCamera(){
-  captured=false; stableSince=0; counting=false; currentHorizontalTilt=0; captureHorizontalTilt=null; shaftDetection=null; resetTiltSamples(); show('cameraScreen');
+  captured=false; stableSince=0; counting=false; gravityAvailable=false; currentHorizontalTilt=0; captureHorizontalTilt=null; shaftDetection=null; show('cameraScreen');
   try{
     await requestSensors();
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
@@ -74,15 +57,8 @@ async function startCamera(){
 }
 
 function onOrientation(e){
-  if(captured||(!IS_IPAD&&gravityAvailable&&performance.now()-lastGravityAt<700)) return;
-  lastOrientationAt=performance.now();
-  gravityAvailable=false;
-  const angle=screenAngle(),beta=e.beta??0,gamma=e.gamma??99;
-  let x=gamma,y=Math.abs(beta)-90;
-  if(angle===90){x=beta;y=Math.abs(gamma)-90;}
-  else if(angle===270){x=-beta;y=Math.abs(gamma)-90;}
-  else if(angle===180)x=-gamma;
-  const smoothed=smoothTilt(x,y);updateLevel(smoothed.x,smoothed.y);
+  if(captured||gravityAvailable) return;
+  updateLevel(e.gamma??99,Math.abs(e.beta??0)-90);
 }
 
 function updateLevel(x,y){
