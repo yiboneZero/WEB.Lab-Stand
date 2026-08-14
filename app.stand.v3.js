@@ -127,7 +127,7 @@ function draw(){
     const radius=Math.max(52,photoCanvas.width/11),stroke=Math.max(7,photoCanvas.width/180),accent=draggedPoint===i?'#ffe45e':'#ff633f';
     ctx.save();ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.lineWidth=stroke;ctx.strokeStyle=accent;ctx.stroke();
     ctx.beginPath();ctx.moveTo(p.x-radius*.45,p.y);ctx.lineTo(p.x+radius*.45,p.y);ctx.moveTo(p.x,p.y-radius*.45);ctx.lineTo(p.x,p.y+radius*.45);ctx.lineWidth=Math.max(4,stroke*.55);ctx.strokeStyle='#fff';ctx.stroke();
-    const badgeX=p.x+radius*.88,badgeY=p.y-radius*.88,badgeR=radius*.42;ctx.beginPath();ctx.arc(badgeX,badgeY,badgeR,0,Math.PI*2);ctx.fillStyle=accent;ctx.fill();ctx.lineWidth=Math.max(3,stroke*.45);ctx.strokeStyle='#fff';ctx.stroke();ctx.fillStyle='#101311';ctx.font=`bold ${Math.max(24,photoCanvas.width/32)}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(i-1,badgeX,badgeY);ctx.restore();
+    ctx.restore();
   });
   if(points.length>=2){ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);ctx.lineTo(points[1].x,points[1].y);ctx.strokeStyle='rgba(185,255,61,.48)';ctx.lineWidth=Math.max(2,photoCanvas.width/600);ctx.stroke();}
   if(points.length>=4){ctx.save();ctx.beginPath();ctx.moveTo(points[2].x,points[2].y);ctx.lineTo(points[3].x,points[3].y);ctx.strokeStyle='rgba(255,99,63,.75)';ctx.setLineDash([Math.max(14,photoCanvas.width/80),Math.max(10,photoCanvas.width/120)]);ctx.lineWidth=Math.max(5,photoCanvas.width/220);ctx.stroke();ctx.restore();}
@@ -141,9 +141,9 @@ function updateStep(){
   else if(points.length===3){stage=3;title.textContent='퍼터 솔의 바닥 기준점을 선택하세요';help.textContent='퍼터 헤드 바닥면이 지면에 닿는 기준점을 터치하세요.';}
   else{stage=4;title.textContent='선택점 위치를 보정하세요';help.textContent='주황색 두 점을 드래그해 맞춘 뒤 측정 버튼을 누르세요.';}
   panel.hidden=points.length<2;confirm.disabled=points.length<4;
-  if(points.length===2){panelTitle.textContent='1. 퍼터 그립 끝을 선택하세요';panelHelp.textContent='사진에서 그립의 가장 아래쪽 끝을 터치하세요.';confirm.textContent='두 점을 선택하면 측정할 수 있습니다';}
-  else if(points.length===3){panelTitle.textContent='2. 퍼터 솔의 바닥 기준점을 선택하세요';panelHelp.textContent='헤드 바닥면이 지면에 닿는 기준점을 터치하세요.';confirm.textContent='바닥 기준점을 선택해 주세요';}
-  else if(points.length>=4){panelTitle.textContent='측정 기준점을 보정하세요';panelHelp.textContent='주황색 1·2번 점을 그립 끝과 솔의 바닥 기준점에 맞추세요.';confirm.textContent='이 위치로 측정';}
+  if(points.length===2){panelTitle.textContent='퍼터 그립 끝을 선택하세요';panelHelp.textContent='사진에서 그립의 가장 아래쪽 끝을 터치하세요.';confirm.textContent='두 점을 선택하면 측정할 수 있습니다';}
+  else if(points.length===3){panelTitle.textContent='퍼터 솔의 바닥 기준점을 선택하세요';panelHelp.textContent='헤드 바닥면이 지면에 닿는 기준점을 터치하세요.';confirm.textContent='바닥 기준점을 선택해 주세요';}
+  else if(points.length>=4){panelTitle.textContent='측정 기준점을 보정하세요';panelHelp.textContent='주황색 두 점을 그립 끝과 솔의 바닥 기준점에 맞추세요.';confirm.textContent='이 위치로 측정';}
   document.querySelector('#tapHint').textContent=stage;document.querySelector('#tapHint').hidden=stage===4;document.querySelector('#progressBar').style.width=`${stage*25}%`;
 }
 function luminance(data,index){return data[index]*.299+data[index+1]*.587+data[index+2]*.114;}
