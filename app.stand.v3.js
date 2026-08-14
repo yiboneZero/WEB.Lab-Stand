@@ -70,7 +70,7 @@ function updateLevel(x,y){
   const horizontalTrack=document.querySelector('#horizontalTrack'),verticalTrack=document.querySelector('#verticalTrack');
   const horizontalMarker=document.querySelector('#horizontalMarker'),verticalMarker=document.querySelector('#verticalMarker');
   const displayX=Math.round(x*10)/10,displayY=Math.round(y*10)/10;
-  const radarLimit=12.5,normalizedX=Math.max(-1,Math.min(1,displayX/radarLimit)),normalizedY=Math.max(-1,Math.min(1,displayY/radarLimit));
+  const radarLimit=TILT_LIMIT*(46/11),normalizedX=Math.max(-1,Math.min(1,displayX/radarLimit)),normalizedY=Math.max(-1,Math.min(1,displayY/radarLimit));
   level.querySelector('i').style.transform=`translate(${normalizedX*25}px,${normalizedY*25}px)`;
   const markerPosition=normalized=>50+normalized*46;
   horizontalMarker.style.left=`${markerPosition(normalizedX)}%`;verticalMarker.style.top=`${markerPosition(normalizedY)}%`;
