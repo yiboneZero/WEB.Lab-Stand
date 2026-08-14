@@ -129,9 +129,11 @@
 }
 
 .camera-screen .camera-top {
-  top: auto;
+  top: calc(16px + env(safe-area-inset-top));
+  left: 16px;
   right: auto;
-  bottom: calc(30px + env(safe-area-inset-bottom));
+  bottom: auto;
+  z-index: 8;
 }
 
 .camera-screen .camera-top > button {
@@ -219,7 +221,7 @@
   flex-direction: column;
   justify-content: center;
   min-height: 0;
-  padding: 4px 10px 48px;
+  padding: 4px 10px 0;
 }
 
 .camera-screen .camera-bottom .level-cluster {
