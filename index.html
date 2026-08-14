@@ -68,12 +68,12 @@
       <h2>측정 결과</h2>
       <div class="result-card"><span>솔 바닥 기준점부터 그립 끝까지</span><strong id="resultCm">—</strong><em>cm</em><div><b id="resultIn">—</b> inch</div></div>
       <div class="diagnostic-result"><div><span>공 검출 지름</span><b id="ballPixelDiameter">—</b></div><div><span>퍼터 선택점 거리</span><b id="putterPixelLength">—</b></div></div>
-      <div class="shaft-result"><div class="shaft-result-main"><span>자동 검출 샤프트 라이각</span><strong id="shaftAngle">—</strong></div><div><span>이미지 검출 각도</span><b id="shaftRaw">—</b></div><div><span>촬영 수평 보정</span><b id="shaftCorrection">—</b></div><div><span>검출 신뢰도</span><b id="shaftConfidence">—</b></div><small>청록색 선은 자동 검출된 샤프트 중심선이며 수동 보정 없이 계산됩니다.</small></div>
+      <div class="shaft-result"><div class="shaft-result-main"><span>자동 검출 샤프트 라이각</span><strong id="shaftAngle">—</strong></div><div><span>샤프트 분석 높이</span><b>바닥 위 5~35cm</b></div><div><span>이미지 검출 각도</span><b id="shaftRaw">—</b></div><div><span>촬영 수평 보정</span><b id="shaftCorrection">—</b></div><div><span>검출 신뢰도</span><b id="shaftConfidence">—</b></div><small>골프공 하단을 바닥으로 삼아 5~35cm 구간의 샤프트 중심선을 자동 검출합니다.</small></div>
       <div class="accuracy"><b>골프공 기준 비율 측정</b><p>골프공의 실제 지름 42.67mm와 이미지 속 픽셀 비율을 사용해 퍼터 길이를 계산합니다.</p></div>
       <button id="newMeasure" class="primary">다시 측정하기</button>
     </section>
   </main>
   <canvas id="captureCanvas" hidden></canvas>
-  <script src="app.stand.v3.js?v=4"></script>
+  <script src="app.stand.v3.js?v=5"></script>
 </body>
 </html>

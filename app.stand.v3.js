@@ -137,7 +137,7 @@ function draw(){
   if(shaftDetection?.ok){
     const {start,end}=shaftDetection;
     ctx.save();ctx.beginPath();ctx.moveTo(start.x,start.y);ctx.lineTo(end.x,end.y);ctx.strokeStyle='rgba(71,224,255,.96)';ctx.lineWidth=Math.max(5,photoCanvas.width/260);ctx.shadowColor='rgba(0,0,0,.8)';ctx.shadowBlur=5;ctx.stroke();
-    ctx.setLineDash([Math.max(12,photoCanvas.width/100),Math.max(8,photoCanvas.width/140)]);ctx.lineWidth=Math.max(2,photoCanvas.width/520);ctx.beginPath();ctx.moveTo(0,shaftDetection.groundY);ctx.lineTo(photoCanvas.width,shaftDetection.groundY);ctx.strokeStyle='rgba(185,255,61,.82)';ctx.stroke();ctx.restore();
+    ctx.setLineDash([Math.max(12,photoCanvas.width/100),Math.max(8,photoCanvas.width/140)]);ctx.lineWidth=Math.max(2,photoCanvas.width/520);ctx.beginPath();ctx.moveTo(shaftDetection.groundStart.x,shaftDetection.groundStart.y);ctx.lineTo(shaftDetection.groundEnd.x,shaftDetection.groundEnd.y);ctx.strokeStyle='rgba(185,255,61,.82)';ctx.stroke();ctx.restore();
   }
 }
 function updateStep(){
@@ -359,6 +359,9 @@ function detectShaftLegacy(){
 function detectShaft(){
   shaftDetection=null;if(!image||points.length<4)return null;
   const grip=points[2],sole=points[3],dx=sole.x-grip.x,dy=sole.y-grip.y,length=Math.hypot(dx,dy);if(length<80)return null;
+  const ballCenter={x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2},ballPx=distance(points[0],points[1]),pxPerMm=ballPx/BALL_MM;if(pxPerMm<=0)return null;
+  const rollRad=(captureHorizontalTilt||0)*Math.PI/180,down={x:-Math.sin(rollRad),y:Math.cos(rollRad)},up={x:-down.x,y:-down.y},groundDir={x:down.y,y:-down.x};
+  const ground={x:ballCenter.x+down.x*ballPx/2,y:ballCenter.y+down.y*ballPx/2};
   const nx=-dy/length,ny=dx/length,searchHalf=Math.max(22,Math.min(photoCanvas.width*.075,length*.085));
   const sampleCanvas=document.createElement('canvas'),maxSide=1500,scale=Math.min(1,maxSide/Math.max(photoCanvas.width,photoCanvas.height));
   sampleCanvas.width=Math.max(1,Math.round(photoCanvas.width*scale));sampleCanvas.height=Math.max(1,Math.round(photoCanvas.height*scale));
@@ -366,8 +369,8 @@ function detectShaft(){
   const pixels=sampleCtx.getImageData(0,0,sampleCanvas.width,sampleCanvas.height).data,w=sampleCanvas.width,h=sampleCanvas.height;
   const tone=(x,y)=>{const px=Math.max(0,Math.min(w-1,Math.round(x*scale))),py=Math.max(0,Math.min(h-1,Math.round(y*scale))),i=(py*w+px)*4;return luminance(pixels,i);};
   const sections=[],offsetStep=Math.max(1.5,2/scale),minWidth=Math.max(4,length*.0035),maxWidth=Math.min(searchHalf*1.35,length*.055);
-  for(let k=0;k<72;k++){
-    const t=.16+k/71*.66,bx=grip.x+dx*t,by=grip.y+dy*t,profile=[];
+  for(let k=0;k<88;k++){
+    const t=.08+k/87*.88,bx=grip.x+dx*t,by=grip.y+dy*t,profile=[];
     for(let o=-searchHalf;o<=searchHalf;o+=offsetStep)profile.push({o,v:(tone(bx+nx*(o-offsetStep),by+ny*(o-offsetStep))+2*tone(bx+nx*o,by+ny*o)+tone(bx+nx*(o+offsetStep),by+ny*(o+offsetStep)))/4});
     let best=null;
     for(let left=1;left<profile.length-3;left++)for(let right=left+2;right<profile.length-1;right++){
@@ -376,19 +379,15 @@ function detectShaft(){
       const middle=Math.round((left+right)/2),inside=profile[middle].v,outside=(profile[Math.max(0,left-2)].v+profile[Math.min(profile.length-1,right+2)].v)/2;
       const contrast=Math.abs(outside-inside),edgeStrength=Math.abs(edgeL)+Math.abs(edgeR),symmetry=1-Math.min(1,Math.abs(Math.abs(edgeL)-Math.abs(edgeR))/Math.max(1,edgeStrength));
       const score=edgeStrength+contrast*.8+symmetry*8;if(contrast<5||score<(best?.score||0))continue;
-      best={t,x:bx+nx*(profile[left].o+profile[right].o)/2,y:by+ny*(profile[left].o+profile[right].o)/2,width,score,edgeStrength};
+      const x=bx+nx*(profile[left].o+profile[right].o)/2,y=by+ny*(profile[left].o+profile[right].o)/2,heightMm=((x-ground.x)*up.x+(y-ground.y)*up.y)/pxPerMm;
+      best={t,x,y,width,score,edgeStrength,heightMm};
     }
     if(best)sections.push(best);
   }
   if(sections.length<22)return{ok:false,reason:'샤프트 양쪽 경계 후보 부족',confidence:0};
-  const sortedWidths=sections.map(s=>s.width).sort((a,b)=>a-b),shaftWidth=median(sortedWidths.slice(0,Math.max(8,Math.ceil(sortedWidths.length*.55))));
-  let shaftStart=.36;
-  for(let i=0;i<=sections.length-5;i++){
-    const run=sections.slice(i,i+5);if(run[0].t<.24)continue;
-    if(run.every(s=>s.width<=shaftWidth*1.75)){shaftStart=Math.max(.32,run[0].t+.025);break;}
-  }
-  const usable=sections.filter(s=>s.t>=shaftStart&&s.t<=.78&&s.width<=shaftWidth*2.05);
-  if(usable.length<16)return{ok:false,reason:'그립을 제외한 샤프트 구간 부족',confidence:0};
+  const heightBand=sections.filter(s=>s.heightMm>=50&&s.heightMm<=350),sortedWidths=heightBand.map(s=>s.width).sort((a,b)=>a-b),shaftWidth=median(sortedWidths.slice(0,Math.max(8,Math.ceil(sortedWidths.length*.7))));
+  const usable=heightBand.filter(s=>s.width<=shaftWidth*2.15);
+  if(usable.length<16)return{ok:false,reason:'바닥 위 5~35cm 샤프트 경계 부족',confidence:0};
   const tolerance=Math.max(2.5,length*.0045),scoreFloor=median(usable.map(s=>s.score))*.55,candidates=usable.filter(s=>s.score>=scoreFloor);let bestInliers=[];
   for(let a=0;a<candidates.length-5;a++)for(let b=a+5;b<candidates.length;b+=2){
     const p=candidates[a],q=candidates[b],ldx=q.x-p.x,ldy=q.y-p.y,ll=Math.hypot(ldx,ldy);if(ll<length*.12)continue;
@@ -402,9 +401,10 @@ function detectShaft(){
   if(rawAngle<60||rawAngle>80)return{ok:false,reason:'검출 각도가 일반 범위를 벗어남',confidence:0,rawAngle};
   const projections=bestInliers.map(p=>(p.x-line.x)*line.ux+(p.y-line.y)*line.uy),minP=Math.min(...projections),maxP=Math.max(...projections),residual=median(bestInliers.map(p=>pointLineDistance(p,line)));
   const widths=bestInliers.map(p=>p.width),widthMedian=median(widths),widthResidual=median(widths.map(v=>Math.abs(v-widthMedian)))/Math.max(1,widthMedian);
-  const coverage=(maxP-minP)/(length*Math.max(.25,.78-shaftStart)),support=bestInliers.length/candidates.length,straightness=Math.max(0,1-residual/tolerance),widthQuality=Math.max(0,1-widthResidual/.45);
+  const coverage=(maxP-minP)/(pxPerMm*300),support=bestInliers.length/candidates.length,straightness=Math.max(0,1-residual/tolerance),widthQuality=Math.max(0,1-widthResidual/.45);
   const confidence=Math.max(0,Math.min(99,Math.round((support*.42+Math.min(1,coverage)*.25+straightness*.23+widthQuality*.10)*100)));
-  return{ok:confidence>=70,reason:confidence>=70?'자동 검출 완료':'검출 신뢰도 부족',rawAngle,correctedAngle,roll:captureHorizontalTilt,confidence,shaftStart,start:{x:line.x+line.ux*minP,y:line.y+line.uy*minP},end:{x:line.x+line.ux*maxP,y:line.y+line.uy*maxP},groundY:sole.y};
+  const groundSpan=Math.hypot(photoCanvas.width,photoCanvas.height);
+  return{ok:confidence>=70,reason:confidence>=70?'자동 검출 완료':'검출 신뢰도 부족',rawAngle,correctedAngle,roll:captureHorizontalTilt,confidence,range:'5~35 cm',start:{x:line.x+line.ux*minP,y:line.y+line.uy*minP},end:{x:line.x+line.ux*maxP,y:line.y+line.uy*maxP},groundStart:{x:ground.x-groundDir.x*groundSpan,y:ground.y-groundDir.y*groundSpan},groundEnd:{x:ground.x+groundDir.x*groundSpan,y:ground.y+groundDir.y*groundSpan}};
 }
 function calculate(){
   const ballPx=distance(points[0],points[1]),putterPx=distance(points[2],points[3]);
