@@ -77,8 +77,8 @@ function onOrientation(e){
   gravityAvailable=false;
   const angle=screenAngle(),beta=e.beta??0,gamma=e.gamma??99;
   let x=gamma,y=Math.abs(beta)-90;
-  if(angle===90){x=-beta+90;y=Math.abs(gamma)-90;}
-  else if(angle===270){x=beta-90;y=Math.abs(gamma)-90;}
+  if(angle===90){x=beta;y=Math.abs(gamma)-90;}
+  else if(angle===270){x=-beta;y=Math.abs(gamma)-90;}
   else if(angle===180)x=-gamma;
   const smoothed=smoothTilt(x,y);updateLevel(smoothed.x,smoothed.y);
 }
