@@ -51,8 +51,8 @@
 }
 
 .camera-screen .level-wrap {
-  bottom: calc(24px + env(safe-area-inset-bottom));
-  padding: 14px 18px;
+  bottom: calc(30px + env(safe-area-inset-bottom));
+  padding: 0 76px;
 }
 
 .camera-screen .frame {
@@ -62,7 +62,7 @@
 .camera-screen .camera-top {
   top: auto;
   right: auto;
-  bottom: calc(24px + env(safe-area-inset-bottom));
+  bottom: calc(30px + env(safe-area-inset-bottom));
 }
 
 .camera-screen .camera-top > button {
@@ -70,16 +70,34 @@
   z-index: 3;
 }
 
-.camera-screen .camera-top > span {
-  position: fixed;
+.camera-screen .capture-guide {
+  position: absolute;
+  top: 61%;
   left: 20px;
   right: 20px;
-  bottom: calc(158px + env(safe-area-inset-bottom));
   z-index: 2;
-  padding: 9px 12px;
-  border-radius: 14px;
-  background: rgba(0, 0, 0, .62);
+  padding: 11px 14px;
+  border: 1px solid rgba(255, 255, 255, .2);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, .58);
   text-align: center;
+  backdrop-filter: blur(8px);
+}
+
+.camera-screen .capture-guide b,
+.camera-screen .capture-guide span {
+  display: block;
+}
+
+.camera-screen .capture-guide b {
+  color: var(--green);
+  font-size: 14px;
+}
+
+.camera-screen .capture-guide span {
+  margin-top: 4px;
+  color: rgba(255, 255, 255, .82);
+  font-size: 11px;
 }
 
 .home .setup-visual .putter {
