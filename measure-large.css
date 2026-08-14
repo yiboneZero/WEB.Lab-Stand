@@ -55,6 +55,26 @@
   padding: 14px 18px;
 }
 
+.camera-screen .frame {
+  inset: 6% 7% 25%;
+}
+
+.camera-screen .camera-top {
+  right: auto;
+}
+
+.camera-screen .camera-top > span {
+  position: fixed;
+  left: 20px;
+  right: 20px;
+  bottom: calc(158px + env(safe-area-inset-bottom));
+  z-index: 2;
+  padding: 9px 12px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, .62);
+  text-align: center;
+}
+
 .home .setup-visual .putter {
   left: 50%;
   top: 12px;
