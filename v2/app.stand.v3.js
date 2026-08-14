@@ -314,6 +314,7 @@ function detectBallAt(x,y){
   else{ballMode='auto';searchRegion=null;alert('골프공 테두리를 찾지 못했습니다. 골프공 중심을 다시 터치하거나 다시 촬영해 주세요.');draw();updateStep();}
 }
 function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+function formatNearestHalf(value){return (Math.round((value+Number.EPSILON)*2)/2).toFixed(1);}
 function snapPutterEndpoint(index){
   if(!image||points.length<4||index<2||index>3)return false;
   const point=points[index],other=points[index===2?3:2],lineLength=distance(point,other);if(lineLength<40)return false;
@@ -453,13 +454,13 @@ function calculate(){
   const ballPx=distance(points[0],points[1]),putterPx=distance(points[2],points[3]);
   if(ballPx<5)return alert('골프공 기준점이 너무 가깝습니다. 다시 지정해 주세요.');
   const rawMm=putterPx/ballPx*BALL_MM;
-  document.querySelector('#resultCm').textContent=(rawMm/10).toFixed(1);
-  document.querySelector('#resultIn').textContent=(rawMm/25.4).toFixed(2);
+  document.querySelector('#resultCm').textContent=formatNearestHalf(rawMm/10);
+  document.querySelector('#resultIn').textContent=formatNearestHalf(rawMm/25.4);
   document.querySelector('#ballPixelDiameter').textContent=`${ballPx.toFixed(1)} px`;
   document.querySelector('#putterPixelLength').textContent=`${putterPx.toFixed(1)} px`;
   shaftDetection=detectShaft();draw();
   const angle=document.querySelector('#shaftAngle'),raw=document.querySelector('#shaftRaw'),correction=document.querySelector('#shaftCorrection'),confidence=document.querySelector('#shaftConfidence');
-  if(shaftDetection?.ok){angle.textContent=`${shaftDetection.correctedAngle.toFixed(1)}°`;raw.textContent=`${shaftDetection.rawAngle.toFixed(1)}°`;correction.textContent=shaftDetection.roll==null?'센서 정보 없음':`${shaftDetection.roll>=0?'+':''}${shaftDetection.roll.toFixed(1)}°`;confidence.textContent=`${shaftDetection.confidence}%`;}
+  if(shaftDetection?.ok){angle.textContent=`${formatNearestHalf(shaftDetection.correctedAngle)}°`;raw.textContent=`${formatNearestHalf(shaftDetection.rawAngle)}°`;correction.textContent=shaftDetection.roll==null?'센서 정보 없음':`${shaftDetection.roll>=0?'+':''}${shaftDetection.roll.toFixed(1)}°`;confidence.textContent=`${shaftDetection.confidence}%`;}
   else{angle.textContent='검출 실패';raw.textContent='—';correction.textContent=captureHorizontalTilt==null?'센서 정보 없음':`${captureHorizontalTilt>=0?'+':''}${captureHorizontalTilt.toFixed(1)}°`;confidence.textContent=shaftDetection?.reason||'샤프트를 찾지 못했습니다';}
   show('resultScreen');
 }
