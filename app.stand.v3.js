@@ -1,4 +1,5 @@
 const BALL_MM = 42.67;
+const BALL_SEARCH_RADIUS_RATIO = .098;
 const TILT_LIMIT = 1.5;
 const STABLE_MS = 1000;
 const screens = [...document.querySelectorAll('.screen')];
@@ -284,7 +285,7 @@ function findBallInRegion(pixels,width,height,x,y,roiRadius){
   candidates.sort((a,b)=>b.regionScore-a.regionScore);return candidates[0]||null;
 }
 function detectBallAt(x,y){
-  const roiRadius=Math.round(Math.min(photoCanvas.width,photoCanvas.height)*.14);
+  const roiRadius=Math.round(Math.min(photoCanvas.width,photoCanvas.height)*BALL_SEARCH_RADIUS_RATIO);
   searchRegion=null;ballCandidate=null;draw();
   const pixels=ctx.getImageData(0,0,photoCanvas.width,photoCanvas.height).data;
   searchRegion={x,y,radius:roiRadius};
