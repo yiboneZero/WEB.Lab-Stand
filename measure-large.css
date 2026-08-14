@@ -183,7 +183,7 @@
 .camera-screen .vertical-axis .axis-track {width:6px;height:82px;background:linear-gradient(180deg,#ff6a61 0 39%,#b9ff3d 39% 61%,#ff6a61 61% 100%)}
 .camera-screen .horizontal-axis .axis-track::after {content:"";position:absolute;left:50%;top:-3px;width:1px;height:12px;background:rgba(255,255,255,.75)}
 .camera-screen .vertical-axis .axis-track::after {content:"";position:absolute;left:-3px;top:50%;width:12px;height:1px;background:rgba(255,255,255,.75)}
-.camera-screen .axis-track > i {position:absolute;left:50%;top:50%;width:16px;height:16px;border:2px solid white;border-radius:50%;background:#ff5d55;box-shadow:0 2px 8px rgba(0,0,0,.45);transform:translate(-50%,-50%);transition:left .08s,top .08s,background .15s}
+.camera-screen .axis-track > i {position:absolute;left:50%;top:50%;width:10px;height:10px;border:1.5px solid white;border-radius:50%;background:#ff5d55;box-shadow:0 1px 5px rgba(0,0,0,.5);transform:translate(-50%,-50%);transition:left .08s,top .08s,background .15s}
 .camera-screen .axis-track.ok > i {background:var(--green)}
 
 .camera-screen .camera-bottom {
