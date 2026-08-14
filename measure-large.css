@@ -209,8 +209,8 @@
 .camera-screen .camera-bottom .capture-guide {
   position: static;
   flex: 0 0 auto;
-  margin-left: 48px;
-  padding: 8px 12px;
+  margin-left: 0;
+  padding: 8px 58px;
   border-color: rgba(185,255,61,.18);
   background: rgba(185,255,61,.07);
 }
