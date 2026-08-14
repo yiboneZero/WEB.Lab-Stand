@@ -59,6 +59,40 @@
   inset: 2% 7% 42%;
 }
 
+.camera-screen .frame-status {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  padding: 9px 12px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 14px;
+  background: rgba(0,0,0,.62);
+  text-align: center;
+  backdrop-filter: blur(7px);
+}
+
+.camera-screen .frame-status strong,
+.camera-screen .frame-status small {
+  display: block;
+}
+
+.camera-screen .frame > span:nth-of-type(1) {top:-1px;left:-1px;border-top:3px solid;border-left:3px solid;border-radius:8px 0}
+.camera-screen .frame > span:nth-of-type(2) {top:-1px;right:-1px;border-top:3px solid;border-right:3px solid;border-radius:0 8px}
+.camera-screen .frame > span:nth-of-type(3) {bottom:-1px;left:-1px;border-bottom:3px solid;border-left:3px solid;border-radius:0 0 0 8px}
+.camera-screen .frame > span:nth-of-type(4) {bottom:-1px;right:-1px;border-bottom:3px solid;border-right:3px solid;border-radius:0 0 8px}
+
+.camera-screen .frame-status strong {
+  font-size: 14px;
+}
+
+.camera-screen .frame-status small {
+  margin-top: 4px;
+  color: rgba(255,255,255,.72);
+  font-size: 10px;
+}
+
 .camera-screen .camera-top {
   top: auto;
   right: auto;
