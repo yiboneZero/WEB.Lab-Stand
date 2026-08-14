@@ -150,11 +150,11 @@ function updateStep(){
   else if(points.length<2){title.textContent='검출된 골프공을 확인하세요';help.textContent='초록색 원이 공 외곽과 맞으면 확인하고, 아니면 다시 선택하세요.';}
   else if(points.length===2){stage=2;title.textContent='퍼터 그립 끝을 선택하세요';help.textContent='그립의 가장 아래쪽 끝을 한 번 터치하세요.';}
   else if(points.length===3){stage=3;title.textContent='퍼터 솔의 바닥 기준점을 선택하세요';help.textContent='퍼터 헤드 바닥면이 지면에 닿는 기준점을 터치하세요.';}
-  else{stage=4;title.textContent='선택점 위치를 보정하세요';help.textContent='주황색 점을 드래그해 놓으면 두 점을 잇는 선 방향의 외곽선에 자동으로 맞춰집니다.';}
+  else{stage=4;title.textContent='선택점 위치를 보정하세요';help.textContent='주황색 점을 놓으면 두 점을 잇는 직선의 앞뒤에서 가장 가까운 엣지에 자동으로 맞춰집니다.';}
   panel.hidden=points.length<2;confirm.disabled=points.length<4;
   if(points.length===2){panelTitle.textContent='퍼터 그립 끝을 선택하세요';panelHelp.textContent='사진에서 그립의 가장 아래쪽 끝을 터치하세요.';confirm.textContent='두 점을 선택하면 측정할 수 있습니다';}
   else if(points.length===3){panelTitle.textContent='퍼터 솔의 바닥 기준점을 선택하세요';panelHelp.textContent='헤드 바닥면이 지면에 닿는 기준점을 터치하세요.';confirm.textContent='바닥 기준점을 선택해 주세요';}
-  else if(points.length>=4){panelTitle.textContent='측정 기준점을 보정하세요';panelHelp.textContent='각 점을 끝부분 가까이에 놓으세요. 놓는 순간 선 방향의 외곽선에 자동으로 맞춰집니다.';confirm.textContent='이 위치로 측정';}
+  else if(points.length>=4){panelTitle.textContent='측정 기준점을 보정하세요';panelHelp.textContent='각 점을 끝부분 가까이에 놓으세요. 직선 각도를 유지하며 가장 가까운 엣지에 맞춰집니다.';confirm.textContent='이 위치로 측정';}
   document.querySelector('#tapHint').textContent=stage;document.querySelector('#tapHint').hidden=stage===4;document.querySelector('#progressBar').style.width=`${stage*25}%`;
 }
 function luminance(data,index){return data[index]*.299+data[index+1]*.587+data[index+2]*.114;}
@@ -326,7 +326,7 @@ function snapPutterEndpoint(index){
   const scanStep=Math.max(1.5,1.5/scale),gradientGap=Math.max(2.5,2.5/scale),corridor=radius*.24,rayCount=9,peaks=[];
   for(let ray=0;ray<rayCount;ray++){
     const offset=-corridor+ray/(rayCount-1)*corridor*2,profile=[];
-    for(let s=-radius*.12;s<=radius*.94;s+=scanStep){
+    for(let s=-radius*.94;s<=radius*.94;s+=scanStep){
       if(Math.hypot(s,offset)>radius*.96)continue;
       const x=point.x+ux*s+nx*offset,y=point.y+uy*s+ny*offset;
       const before=tone(x-ux*gradientGap,y-uy*gradientGap),after=tone(x+ux*gradientGap,y+uy*gradientGap);if(before==null||after==null)continue;
@@ -339,21 +339,15 @@ function snapPutterEndpoint(index){
   if(peaks.length<4)return false;
   const binSize=scanStep*3.2,groups=new Map();
   for(const peak of peaks){const key=Math.round(peak.s/binSize);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(peak);}
-  const ballCenter={x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2},ballPx=distance(points[0],points[1]);
-  const rollRad=(captureHorizontalTilt||0)*Math.PI/180,down={x:-Math.sin(rollRad),y:Math.cos(rollRad)},groundDir={x:Math.cos(rollRad),y:Math.sin(rollRad)};
-  const ground={x:ballCenter.x+down.x*ballPx/2,y:ballCenter.y+down.y*ballPx/2},groundDistance=p=>Math.abs((p.x-ground.x)*groundDir.y-(p.y-ground.y)*groundDir.x);
   const candidates=[];
   for(const group of groups.values()){
     const rays=new Set(group.map(p=>p.ray));if(rays.size<4)continue;
-    const s=median(group.map(p=>p.s)),offset=median(group.map(p=>p.offset)),strength=median(group.map(p=>p.g));if(s<0||s>radius*.94)continue;
-    const candidate={x:point.x+ux*s+nx*offset,y:point.y+uy*s+ny*offset,s,offset,strength,support:rays.size};
-    candidate.groundDistance=groundDistance(candidate);candidates.push(candidate);
+    const s=median(group.map(p=>p.s)),strength=median(group.map(p=>p.g));if(Math.abs(s)>radius*.94)continue;
+    candidates.push({x:point.x+ux*s,y:point.y+uy*s,s,strength,support:rays.size});
   }
   if(!candidates.length)return false;
-  let eligible=candidates;
-  if(index===3){const groundTolerance=Math.max(ballPx*.34,8/scale);const nearGround=candidates.filter(c=>c.groundDistance<=groundTolerance);if(nearGround.length)eligible=nearGround;else return false;}
-  eligible.sort((a,b)=>b.s-a.s||b.support-a.support||b.strength-a.strength||Math.abs(a.offset)-Math.abs(b.offset));
-  const best=eligible[0];if(!best||best.s<scanStep*2)return false;
+  candidates.sort((a,b)=>Math.abs(a.s)-Math.abs(b.s)||b.support-a.support||b.strength-a.strength);
+  const best=candidates[0];if(!best||Math.abs(best.s)<scanStep*2)return false;
   points[index]={x:Math.max(0,Math.min(photoCanvas.width,best.x)),y:Math.max(0,Math.min(photoCanvas.height,best.y))};return true;
 }
 function snapPutterEndpoints(){
