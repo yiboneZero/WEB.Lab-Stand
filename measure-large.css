@@ -169,17 +169,17 @@
   font-size: 11px;
 }
 
-.camera-screen .level-cluster {position:relative;width:176px;height:126px;margin:auto;padding:0 54px 38px 0}
-.camera-screen .level-cluster .level {margin:0}
-.camera-screen .horizontal-axis {position:absolute;left:0;bottom:0;width:82px}
-.camera-screen .vertical-axis {position:absolute;left:104px;top:0;width:60px;height:82px}
+.camera-screen .level-cluster {position:relative;width:min(100%,320px);height:138px;margin:auto;padding:0}
+.camera-screen .level-cluster .level {position:absolute;left:50%;top:0;margin:0;transform:translateX(-50%)}
+.camera-screen .horizontal-axis {position:absolute;left:50%;bottom:4px;width:220px;transform:translateX(-50%)}
+.camera-screen .vertical-axis {position:absolute;left:calc(50% + 60px);top:0;width:58px;height:82px}
 .camera-screen .horizontal-axis > span,.camera-screen .vertical-axis > span,.camera-screen .horizontal-axis > output,.camera-screen .vertical-axis > output {position:absolute;margin:0;color:rgba(255,255,255,.86);font-size:10px;font-variant-numeric:tabular-nums}
 .camera-screen .horizontal-axis > span {left:0;top:11px}
 .camera-screen .horizontal-axis > output {right:0;top:11px}
 .camera-screen .vertical-axis > span {left:20px;top:0}
 .camera-screen .vertical-axis > output {left:20px;bottom:0}
 .camera-screen .axis-track {position:relative;border-radius:99px}
-.camera-screen .horizontal-axis .axis-track {width:82px;height:6px;background:linear-gradient(90deg,#ff6a61 0 39%,#b9ff3d 39% 61%,#ff6a61 61% 100%)}
+.camera-screen .horizontal-axis .axis-track {width:220px;height:6px;background:linear-gradient(90deg,#ff6a61 0 39%,#b9ff3d 39% 61%,#ff6a61 61% 100%)}
 .camera-screen .vertical-axis .axis-track {width:6px;height:82px;background:linear-gradient(180deg,#ff6a61 0 39%,#b9ff3d 39% 61%,#ff6a61 61% 100%)}
 .camera-screen .horizontal-axis .axis-track::after {content:"";position:absolute;left:50%;top:-3px;width:1px;height:12px;background:rgba(255,255,255,.75)}
 .camera-screen .vertical-axis .axis-track::after {content:"";position:absolute;left:-3px;top:50%;width:12px;height:1px;background:rgba(255,255,255,.75)}
@@ -222,8 +222,7 @@
 }
 
 .camera-screen .camera-bottom .level-cluster {
-  transform: scale(.9);
-  transform-origin: center;
+  transform: none;
 }
 
 .camera-screen .camera-bottom .level-wrap strong {
@@ -268,7 +267,7 @@
 @media (max-height: 700px) {
   .camera-screen .camera-bottom {height:41%;padding-top:9px}
   .camera-screen .camera-bottom .capture-guide {padding:6px 10px}
-  .camera-screen .camera-bottom .level-cluster {transform:scale(.78);margin-top:-10px;margin-bottom:-10px}
+  .camera-screen .camera-bottom .level-cluster {transform:scale(.88);transform-origin:center;margin-top:-6px;margin-bottom:-8px}
 }
 
 .home .setup-visual .putter {
