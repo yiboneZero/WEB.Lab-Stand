@@ -117,6 +117,88 @@
 .camera-screen .axis-track > i {position:absolute;left:50%;top:50%;width:16px;height:16px;border:2px solid white;border-radius:50%;background:#ff5d55;box-shadow:0 2px 8px rgba(0,0,0,.45);transform:translate(-50%,-50%);transition:left .08s,top .08s,background .15s}
 .camera-screen .axis-track.ok > i {background:var(--green)}
 
+.camera-screen .camera-bottom {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  height: 39%;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px 10px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 24px;
+  background: linear-gradient(155deg,rgba(24,27,25,.78),rgba(5,7,6,.9));
+  box-shadow: 0 -8px 32px rgba(0,0,0,.18);
+  backdrop-filter: blur(12px);
+}
+
+.camera-screen .camera-bottom .capture-guide {
+  position: static;
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border-color: rgba(185,255,61,.18);
+  background: rgba(185,255,61,.07);
+}
+
+.camera-screen .camera-bottom .level-wrap {
+  position: static;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  padding: 4px 64px 0;
+}
+
+.camera-screen .camera-bottom .level-cluster {
+  transform: scale(.9);
+  transform-origin: center;
+}
+
+.camera-screen .camera-bottom .level-wrap strong {
+  margin-top: -7px;
+  font-size: 14px;
+}
+
+.camera-screen .camera-bottom .level-wrap > span {
+  margin-top: 3px;
+  font-size: 10px;
+}
+
+.camera-screen .close-camera {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 54px;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 15px;
+  background: rgba(255,255,255,.08);
+  color: white;
+}
+
+.camera-screen .close-camera b {
+  font-size: 25px;
+  font-weight: 400;
+  line-height: .8;
+}
+
+.camera-screen .close-camera span {
+  font-size: 9px;
+  color: rgba(255,255,255,.68);
+}
+
+@media (max-height: 700px) {
+  .camera-screen .camera-bottom {height:41%;padding-top:9px}
+  .camera-screen .camera-bottom .capture-guide {padding:6px 10px}
+  .camera-screen .camera-bottom .level-cluster {transform:scale(.78);margin-top:-10px;margin-bottom:-10px}
+}
+
 .home .setup-visual .putter {
   left: 50%;
   top: 12px;
