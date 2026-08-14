@@ -10,6 +10,7 @@ let stream = null, image = null, points = [], stableSince = 0, lastMotion = 0, c
 let ballMode = 'auto', ballCandidate = null, searchRegion = null;
 let draggedPoint = -1;
 let dragOffset = {x:0,y:0};
+let currentHorizontalTilt = 0, captureHorizontalTilt = null, shaftDetection = null;
 
 function show(id){ screens.forEach(s=>s.classList.toggle('active',s.id===id)); }
 function stopCamera(){ if(stream) stream.getTracks().forEach(t=>t.stop()); stream=null; window.removeEventListener('deviceorientation',onOrientation); window.removeEventListener('devicemotion',onMotion); }
@@ -44,7 +45,7 @@ function onMotion(e){
 }
 
 async function startCamera(){
-  captured=false; stableSince=0; counting=false; gravityAvailable=false; show('cameraScreen');
+  captured=false; stableSince=0; counting=false; gravityAvailable=false; currentHorizontalTilt=0; captureHorizontalTilt=null; shaftDetection=null; show('cameraScreen');
   try{
     await requestSensors();
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
@@ -62,6 +63,7 @@ function onOrientation(e){
 
 function updateLevel(x,y){
   if(captured)return;
+  currentHorizontalTilt=x;
   const level=document.querySelector('#level');
   const title=document.querySelector('#levelTitle');
   const detail=document.querySelector('#levelDetail');
@@ -94,6 +96,7 @@ function cancelCountdown(){ counting=false; document.querySelector('#countdown')
 
 function takePhoto(){
   if(captured||!video.videoWidth)return; captured=true; cancelCountdown();
+  captureHorizontalTilt=currentHorizontalTilt;
   const frame=document.querySelector('.frame').getBoundingClientRect(),videoRect=video.getBoundingClientRect();
   const sourceWidth=video.videoWidth,sourceHeight=video.videoHeight,coverScale=Math.max(videoRect.width/sourceWidth,videoRect.height/sourceHeight);
   const renderedWidth=sourceWidth*coverScale,renderedHeight=sourceHeight*coverScale;
@@ -109,7 +112,7 @@ function takePhoto(){
 
 function loadImage(src,cleanup){
   const img=new Image();
-  img.onload=()=>{image=img;points=[];ballMode='auto';ballCandidate=null;searchRegion=null;draggedPoint=-1;document.querySelector('#ballConfirm').hidden=true;document.querySelector('#adjustPanel').hidden=true;document.querySelector('#canvasWrap').classList.remove('adjusting');draw();show('measureScreen');updateStep();cleanup?.();};
+  img.onload=()=>{image=img;points=[];ballMode='auto';ballCandidate=null;searchRegion=null;shaftDetection=null;draggedPoint=-1;document.querySelector('#ballConfirm').hidden=true;document.querySelector('#adjustPanel').hidden=true;document.querySelector('#canvasWrap').classList.remove('adjusting');draw();show('measureScreen');updateStep();cleanup?.();};
   img.onerror=()=>{cleanup?.();alert('사진을 불러오지 못했습니다. JPG, PNG 또는 WebP 사진으로 다시 시도해 주세요.');};
   img.src=src;
 }
@@ -131,6 +134,11 @@ function draw(){
   });
   if(points.length>=2){ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);ctx.lineTo(points[1].x,points[1].y);ctx.strokeStyle='rgba(185,255,61,.48)';ctx.lineWidth=Math.max(2,photoCanvas.width/600);ctx.stroke();}
   if(points.length>=4){ctx.save();ctx.beginPath();ctx.moveTo(points[2].x,points[2].y);ctx.lineTo(points[3].x,points[3].y);ctx.strokeStyle='rgba(255,99,63,.75)';ctx.setLineDash([Math.max(14,photoCanvas.width/80),Math.max(10,photoCanvas.width/120)]);ctx.lineWidth=Math.max(5,photoCanvas.width/220);ctx.stroke();ctx.restore();}
+  if(shaftDetection?.ok){
+    const {start,end}=shaftDetection;
+    ctx.save();ctx.beginPath();ctx.moveTo(start.x,start.y);ctx.lineTo(end.x,end.y);ctx.strokeStyle='rgba(71,224,255,.96)';ctx.lineWidth=Math.max(5,photoCanvas.width/260);ctx.shadowColor='rgba(0,0,0,.8)';ctx.shadowBlur=5;ctx.stroke();
+    ctx.setLineDash([Math.max(12,photoCanvas.width/100),Math.max(8,photoCanvas.width/140)]);ctx.lineWidth=Math.max(2,photoCanvas.width/520);ctx.beginPath();ctx.moveTo(0,shaftDetection.groundY);ctx.lineTo(photoCanvas.width,shaftDetection.groundY);ctx.strokeStyle='rgba(185,255,61,.82)';ctx.stroke();ctx.restore();
+  }
 }
 function updateStep(){
   const title=document.querySelector('#stepTitle'),help=document.querySelector('#stepHelp'),panel=document.querySelector('#adjustPanel'),panelTitle=panel.querySelector('b'),panelHelp=panel.querySelector('span'),confirm=document.querySelector('#confirmPutter');
@@ -303,6 +311,51 @@ function detectBallAt(x,y){
   else{ballMode='auto';searchRegion=null;alert('골프공 테두리를 찾지 못했습니다. 골프공 중심을 다시 터치하거나 다시 촬영해 주세요.');draw();updateStep();}
 }
 function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+function fitLinePca(samples){
+  if(samples.length<2)return null;
+  const cx=samples.reduce((s,p)=>s+p.x,0)/samples.length,cy=samples.reduce((s,p)=>s+p.y,0)/samples.length;
+  let xx=0,xy=0,yy=0;for(const p of samples){const dx=p.x-cx,dy=p.y-cy;xx+=dx*dx;xy+=dx*dy;yy+=dy*dy;}
+  const angle=.5*Math.atan2(2*xy,xx-yy);return{x:cx,y:cy,ux:Math.cos(angle),uy:Math.sin(angle)};
+}
+function pointLineDistance(p,line){return Math.abs((p.x-line.x)*line.uy-(p.y-line.y)*line.ux);}
+function shaftAngleFromLine(line,roll){
+  let signed=Math.atan2(-line.uy,line.ux)*180/Math.PI;
+  signed=(signed+(roll||0)+360)%180;
+  return Math.min(signed,180-signed);
+}
+function detectShaft(){
+  shaftDetection=null;if(!image||points.length<4)return null;
+  const grip=points[2],sole=points[3],dx=sole.x-grip.x,dy=sole.y-grip.y,length=Math.hypot(dx,dy);if(length<80)return null;
+  const nx=-dy/length,ny=dx/length,searchHalf=Math.max(18,Math.min(photoCanvas.width*.07,length*.075));
+  const sampleCanvas=document.createElement('canvas'),maxSide=1200,scale=Math.min(1,maxSide/Math.max(photoCanvas.width,photoCanvas.height));
+  sampleCanvas.width=Math.max(1,Math.round(photoCanvas.width*scale));sampleCanvas.height=Math.max(1,Math.round(photoCanvas.height*scale));
+  const sampleCtx=sampleCanvas.getContext('2d',{willReadFrequently:true});sampleCtx.drawImage(image,0,0,sampleCanvas.width,sampleCanvas.height);
+  const pixels=sampleCtx.getImageData(0,0,sampleCanvas.width,sampleCanvas.height).data,w=sampleCanvas.width,h=sampleCanvas.height;
+  const tone=(x,y)=>{const px=Math.max(0,Math.min(w-1,Math.round(x*scale))),py=Math.max(0,Math.min(h-1,Math.round(y*scale))),i=(py*w+px)*4;return luminance(pixels,i);};
+  const candidates=[];
+  for(let k=0;k<52;k++){
+    const t=.29+k/51*.43,bx=grip.x+dx*t,by=grip.y+dy*t,values=[];
+    for(let o=-searchHalf;o<=searchHalf;o+=2)values.push({o,v:(tone(bx+nx*(o-2),by+ny*(o-2))+tone(bx+nx*o,by+ny*o)+tone(bx+nx*(o+2),by+ny*(o+2)))/3});
+    const background=median(values.map(v=>v.v)),best=values.reduce((a,b)=>b.v<a.v?b:a),contrast=background-best.v;
+    if(contrast>=10)candidates.push({x:bx+nx*best.o,y:by+ny*best.o,weight:contrast});
+  }
+  if(candidates.length<16)return{ok:false,reason:'샤프트 직선 후보 부족',confidence:0};
+  const tolerance=Math.max(3,length*.006);let bestInliers=[];
+  for(let a=0;a<candidates.length-5;a++)for(let b=a+5;b<candidates.length;b+=2){
+    const p=candidates[a],q=candidates[b],ldx=q.x-p.x,ldy=q.y-p.y,ll=Math.hypot(ldx,ldy);if(ll<length*.12)continue;
+    const line={x:p.x,y:p.y,ux:ldx/ll,uy:ldy/ll},angle=shaftAngleFromLine(line,0);if(angle<58||angle>82)continue;
+    const inliers=candidates.filter(c=>pointLineDistance(c,line)<=tolerance);if(inliers.length>bestInliers.length)bestInliers=inliers;
+  }
+  if(bestInliers.length<14)return{ok:false,reason:'일관된 샤프트 중심선 없음',confidence:Math.round(bestInliers.length/candidates.length*100)};
+  let line=fitLinePca(bestInliers);if(!line)return null;
+  const refined=bestInliers.filter(p=>pointLineDistance(p,line)<=tolerance*.8);if(refined.length>=10){bestInliers=refined;line=fitLinePca(refined);}
+  const rawAngle=shaftAngleFromLine(line,0),correctedAngle=shaftAngleFromLine(line,captureHorizontalTilt||0);
+  if(rawAngle<60||rawAngle>80)return{ok:false,reason:'검출 각도가 일반 범위를 벗어남',confidence:0,rawAngle};
+  const projections=bestInliers.map(p=>(p.x-line.x)*line.ux+(p.y-line.y)*line.uy),minP=Math.min(...projections),maxP=Math.max(...projections);
+  const residual=median(bestInliers.map(p=>pointLineDistance(p,line))),coverage=(maxP-minP)/(length*.43),support=bestInliers.length/candidates.length;
+  const confidence=Math.max(0,Math.min(99,Math.round((support*.58+Math.min(1,coverage)*.27+Math.max(0,1-residual/tolerance)*.15)*100)));
+  return{ok:confidence>=55,reason:confidence>=55?'자동 검출 완료':'검출 신뢰도 부족',rawAngle,correctedAngle,roll:captureHorizontalTilt,confidence,start:{x:line.x+line.ux*minP,y:line.y+line.uy*minP},end:{x:line.x+line.ux*maxP,y:line.y+line.uy*maxP},groundY:sole.y};
+}
 function calculate(){
   const ballPx=distance(points[0],points[1]),putterPx=distance(points[2],points[3]);
   if(ballPx<5)return alert('골프공 기준점이 너무 가깝습니다. 다시 지정해 주세요.');
@@ -311,6 +364,10 @@ function calculate(){
   document.querySelector('#resultIn').textContent=(rawMm/25.4).toFixed(2);
   document.querySelector('#ballPixelDiameter').textContent=`${ballPx.toFixed(1)} px`;
   document.querySelector('#putterPixelLength').textContent=`${putterPx.toFixed(1)} px`;
+  shaftDetection=detectShaft();draw();
+  const angle=document.querySelector('#shaftAngle'),raw=document.querySelector('#shaftRaw'),correction=document.querySelector('#shaftCorrection'),confidence=document.querySelector('#shaftConfidence');
+  if(shaftDetection?.ok){angle.textContent=`${shaftDetection.correctedAngle.toFixed(1)}°`;raw.textContent=`${shaftDetection.rawAngle.toFixed(1)}°`;correction.textContent=shaftDetection.roll==null?'센서 정보 없음':`${shaftDetection.roll>=0?'+':''}${shaftDetection.roll.toFixed(1)}°`;confidence.textContent=`${shaftDetection.confidence}%`;}
+  else{angle.textContent='검출 실패';raw.textContent='—';correction.textContent=captureHorizontalTilt==null?'센서 정보 없음':`${captureHorizontalTilt>=0?'+':''}${captureHorizontalTilt.toFixed(1)}°`;confidence.textContent=shaftDetection?.reason||'샤프트를 찾지 못했습니다';}
   show('resultScreen');
 }
 
@@ -324,10 +381,10 @@ photoCanvas.addEventListener('pointerdown',e=>{
 });
 photoCanvas.addEventListener('pointermove',e=>{if(draggedPoint<2)return;const p=canvasPoint(e);points[draggedPoint]={x:Math.max(0,Math.min(photoCanvas.width,p.x+dragOffset.x)),y:Math.max(0,Math.min(photoCanvas.height,p.y+dragOffset.y))};draw();e.preventDefault();});
 photoCanvas.addEventListener('pointerup',e=>{
-  if(draggedPoint>=2){draggedPoint=-1;dragOffset={x:0,y:0};draw();return;}
+  if(draggedPoint>=2){draggedPoint=-1;dragOffset={x:0,y:0};shaftDetection=detectShaft();draw();return;}
   if(points.length>=4||ballCandidate)return;
   const p=canvasPoint(e);if(points.length===0&&ballMode==='auto')return detectBallAt(p.x,p.y);points.push({x:p.x,y:p.y});draw();updateStep();
-  if(points.length===4){document.querySelector('#canvasWrap').classList.add('adjusting');updateStep();}
+  if(points.length===4){shaftDetection=detectShaft();document.querySelector('#canvasWrap').classList.add('adjusting');draw();updateStep();}
 });
 photoCanvas.addEventListener('pointercancel',()=>{draggedPoint=-1;dragOffset={x:0,y:0};draw();});
 document.querySelector('#confirmBall').addEventListener('click',()=>{if(!ballCandidate)return;points=[{x:ballCandidate.x-ballCandidate.radius,y:ballCandidate.y},{x:ballCandidate.x+ballCandidate.radius,y:ballCandidate.y}];ballCandidate=null;searchRegion=null;document.querySelector('#ballConfirm').hidden=true;draw();updateStep();});
@@ -342,6 +399,7 @@ document.querySelector('#fileInput').addEventListener('change',e=>{
   const input=e.currentTarget,file=input.files?.[0];
   if(!file)return;
   if(!file.type.startsWith('image/')){alert('이미지 파일을 선택해 주세요.');input.value='';return;}
+  captureHorizontalTilt=null;
   const objectUrl=URL.createObjectURL(file);
   loadImage(objectUrl,()=>URL.revokeObjectURL(objectUrl));input.value='';
 });
