@@ -149,7 +149,7 @@
   flex-direction: column;
   justify-content: center;
   min-height: 0;
-  padding: 4px 64px 0;
+  padding: 4px 10px 48px;
 }
 
 .camera-screen .camera-bottom .level-cluster {
@@ -170,27 +170,30 @@
 .camera-screen .close-camera {
   position: absolute;
   left: 14px;
-  bottom: 14px;
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 54px;
+  right: 14px;
+  bottom: 10px;
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: 42px;
   padding: 0;
   border: 1px solid rgba(255,255,255,.2);
-  border-radius: 15px;
+  border-radius: 13px;
   background: rgba(255,255,255,.08);
   color: white;
 }
 
 .camera-screen .close-camera b {
-  font-size: 25px;
+  font-size: 21px;
   font-weight: 400;
   line-height: .8;
 }
 
 .camera-screen .close-camera span {
-  font-size: 9px;
-  color: rgba(255,255,255,.68);
+  font-size: 12px;
+  color: rgba(255,255,255,.82);
 }
 
 @media (max-height: 700px) {
