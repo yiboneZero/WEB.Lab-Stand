@@ -65,12 +65,45 @@
   right: 12px;
   bottom: 12px;
   z-index: 2;
-  padding: 9px 12px;
-  border: 1px solid rgba(255,255,255,.16);
-  border-radius: 14px;
-  background: rgba(0,0,0,.62);
+  padding: 7px 10px 8px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(0deg,rgba(0,0,0,.38),rgba(0,0,0,.1));
   text-align: center;
-  backdrop-filter: blur(7px);
+  pointer-events: none;
+  backdrop-filter: blur(2px);
+}
+
+.camera-screen .frame .capture-guide {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  z-index: 2;
+  padding: 7px 10px 9px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(180deg,rgba(0,0,0,.38),rgba(0,0,0,.1));
+  text-align: center;
+  pointer-events: none;
+  backdrop-filter: blur(2px);
+}
+
+.camera-screen .frame .capture-guide b,
+.camera-screen .frame .capture-guide small {
+  display: block;
+  text-shadow: 0 1px 4px rgba(0,0,0,.9);
+}
+
+.camera-screen .frame .capture-guide b {
+  color: rgba(185,255,61,.92);
+  font-size: 12px;
+}
+
+.camera-screen .frame .capture-guide small {
+  margin-top: 3px;
+  color: rgba(255,255,255,.78);
+  font-size: 9px;
 }
 
 .camera-screen .frame-status strong,
@@ -84,13 +117,15 @@
 .camera-screen .frame > span:nth-of-type(4) {bottom:-1px;right:-1px;border-bottom:3px solid;border-right:3px solid;border-radius:0 0 8px}
 
 .camera-screen .frame-status strong {
-  font-size: 14px;
+  font-size: 12px;
+  text-shadow: 0 1px 4px rgba(0,0,0,.9);
 }
 
 .camera-screen .frame-status small {
   margin-top: 4px;
-  color: rgba(255,255,255,.72);
-  font-size: 10px;
+  color: rgba(255,255,255,.7);
+  font-size: 9px;
+  text-shadow: 0 1px 4px rgba(0,0,0,.9);
 }
 
 .camera-screen .camera-top {
