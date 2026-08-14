@@ -323,7 +323,7 @@ function shaftAngleFromLine(line,roll){
   signed=(signed+(roll||0)+360)%180;
   return Math.min(signed,180-signed);
 }
-function detectShaft(){
+function detectShaftLegacy(){
   shaftDetection=null;if(!image||points.length<4)return null;
   const grip=points[2],sole=points[3],dx=sole.x-grip.x,dy=sole.y-grip.y,length=Math.hypot(dx,dy);if(length<80)return null;
   const nx=-dy/length,ny=dx/length,searchHalf=Math.max(18,Math.min(photoCanvas.width*.07,length*.075));
@@ -355,6 +355,56 @@ function detectShaft(){
   const residual=median(bestInliers.map(p=>pointLineDistance(p,line))),coverage=(maxP-minP)/(length*.43),support=bestInliers.length/candidates.length;
   const confidence=Math.max(0,Math.min(99,Math.round((support*.58+Math.min(1,coverage)*.27+Math.max(0,1-residual/tolerance)*.15)*100)));
   return{ok:confidence>=55,reason:confidence>=55?'자동 검출 완료':'검출 신뢰도 부족',rawAngle,correctedAngle,roll:captureHorizontalTilt,confidence,start:{x:line.x+line.ux*minP,y:line.y+line.uy*minP},end:{x:line.x+line.ux*maxP,y:line.y+line.uy*maxP},groundY:sole.y};
+}
+function detectShaft(){
+  shaftDetection=null;if(!image||points.length<4)return null;
+  const grip=points[2],sole=points[3],dx=sole.x-grip.x,dy=sole.y-grip.y,length=Math.hypot(dx,dy);if(length<80)return null;
+  const nx=-dy/length,ny=dx/length,searchHalf=Math.max(22,Math.min(photoCanvas.width*.075,length*.085));
+  const sampleCanvas=document.createElement('canvas'),maxSide=1500,scale=Math.min(1,maxSide/Math.max(photoCanvas.width,photoCanvas.height));
+  sampleCanvas.width=Math.max(1,Math.round(photoCanvas.width*scale));sampleCanvas.height=Math.max(1,Math.round(photoCanvas.height*scale));
+  const sampleCtx=sampleCanvas.getContext('2d',{willReadFrequently:true});sampleCtx.drawImage(image,0,0,sampleCanvas.width,sampleCanvas.height);
+  const pixels=sampleCtx.getImageData(0,0,sampleCanvas.width,sampleCanvas.height).data,w=sampleCanvas.width,h=sampleCanvas.height;
+  const tone=(x,y)=>{const px=Math.max(0,Math.min(w-1,Math.round(x*scale))),py=Math.max(0,Math.min(h-1,Math.round(y*scale))),i=(py*w+px)*4;return luminance(pixels,i);};
+  const sections=[],offsetStep=Math.max(1.5,2/scale),minWidth=Math.max(4,length*.0035),maxWidth=Math.min(searchHalf*1.35,length*.055);
+  for(let k=0;k<72;k++){
+    const t=.16+k/71*.66,bx=grip.x+dx*t,by=grip.y+dy*t,profile=[];
+    for(let o=-searchHalf;o<=searchHalf;o+=offsetStep)profile.push({o,v:(tone(bx+nx*(o-offsetStep),by+ny*(o-offsetStep))+2*tone(bx+nx*o,by+ny*o)+tone(bx+nx*(o+offsetStep),by+ny*(o+offsetStep)))/4});
+    let best=null;
+    for(let left=1;left<profile.length-3;left++)for(let right=left+2;right<profile.length-1;right++){
+      const width=profile[right].o-profile[left].o;if(width<minWidth||width>maxWidth)continue;
+      const edgeL=profile[left+1].v-profile[left-1].v,edgeR=profile[right+1].v-profile[right-1].v;if(edgeL*edgeR>=0)continue;
+      const middle=Math.round((left+right)/2),inside=profile[middle].v,outside=(profile[Math.max(0,left-2)].v+profile[Math.min(profile.length-1,right+2)].v)/2;
+      const contrast=Math.abs(outside-inside),edgeStrength=Math.abs(edgeL)+Math.abs(edgeR),symmetry=1-Math.min(1,Math.abs(Math.abs(edgeL)-Math.abs(edgeR))/Math.max(1,edgeStrength));
+      const score=edgeStrength+contrast*.8+symmetry*8;if(contrast<5||score<(best?.score||0))continue;
+      best={t,x:bx+nx*(profile[left].o+profile[right].o)/2,y:by+ny*(profile[left].o+profile[right].o)/2,width,score,edgeStrength};
+    }
+    if(best)sections.push(best);
+  }
+  if(sections.length<22)return{ok:false,reason:'샤프트 양쪽 경계 후보 부족',confidence:0};
+  const sortedWidths=sections.map(s=>s.width).sort((a,b)=>a-b),shaftWidth=median(sortedWidths.slice(0,Math.max(8,Math.ceil(sortedWidths.length*.55))));
+  let shaftStart=.36;
+  for(let i=0;i<=sections.length-5;i++){
+    const run=sections.slice(i,i+5);if(run[0].t<.24)continue;
+    if(run.every(s=>s.width<=shaftWidth*1.75)){shaftStart=Math.max(.32,run[0].t+.025);break;}
+  }
+  const usable=sections.filter(s=>s.t>=shaftStart&&s.t<=.78&&s.width<=shaftWidth*2.05);
+  if(usable.length<16)return{ok:false,reason:'그립을 제외한 샤프트 구간 부족',confidence:0};
+  const tolerance=Math.max(2.5,length*.0045),scoreFloor=median(usable.map(s=>s.score))*.55,candidates=usable.filter(s=>s.score>=scoreFloor);let bestInliers=[];
+  for(let a=0;a<candidates.length-5;a++)for(let b=a+5;b<candidates.length;b+=2){
+    const p=candidates[a],q=candidates[b],ldx=q.x-p.x,ldy=q.y-p.y,ll=Math.hypot(ldx,ldy);if(ll<length*.12)continue;
+    const line={x:p.x,y:p.y,ux:ldx/ll,uy:ldy/ll},angle=shaftAngleFromLine(line,0);if(angle<58||angle>82)continue;
+    const inliers=candidates.filter(c=>pointLineDistance(c,line)<=tolerance);if(inliers.length>bestInliers.length)bestInliers=inliers;
+  }
+  if(bestInliers.length<14)return{ok:false,reason:'샤프트 중심선의 직진성 부족',confidence:Math.round(bestInliers.length/Math.max(1,candidates.length)*100)};
+  let line=fitLinePca(bestInliers);if(!line)return null;
+  const refined=bestInliers.filter(p=>pointLineDistance(p,line)<=tolerance*.78);if(refined.length>=12){bestInliers=refined;line=fitLinePca(refined);}
+  const rawAngle=shaftAngleFromLine(line,0),correctedAngle=shaftAngleFromLine(line,captureHorizontalTilt||0);
+  if(rawAngle<60||rawAngle>80)return{ok:false,reason:'검출 각도가 일반 범위를 벗어남',confidence:0,rawAngle};
+  const projections=bestInliers.map(p=>(p.x-line.x)*line.ux+(p.y-line.y)*line.uy),minP=Math.min(...projections),maxP=Math.max(...projections),residual=median(bestInliers.map(p=>pointLineDistance(p,line)));
+  const widths=bestInliers.map(p=>p.width),widthMedian=median(widths),widthResidual=median(widths.map(v=>Math.abs(v-widthMedian)))/Math.max(1,widthMedian);
+  const coverage=(maxP-minP)/(length*Math.max(.25,.78-shaftStart)),support=bestInliers.length/candidates.length,straightness=Math.max(0,1-residual/tolerance),widthQuality=Math.max(0,1-widthResidual/.45);
+  const confidence=Math.max(0,Math.min(99,Math.round((support*.42+Math.min(1,coverage)*.25+straightness*.23+widthQuality*.10)*100)));
+  return{ok:confidence>=70,reason:confidence>=70?'자동 검출 완료':'검출 신뢰도 부족',rawAngle,correctedAngle,roll:captureHorizontalTilt,confidence,shaftStart,start:{x:line.x+line.ux*minP,y:line.y+line.uy*minP},end:{x:line.x+line.ux*maxP,y:line.y+line.uy*maxP},groundY:sole.y};
 }
 function calculate(){
   const ballPx=distance(points[0],points[1]),putterPx=distance(points[2],points[3]);
