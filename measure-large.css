@@ -56,11 +56,18 @@
 }
 
 .camera-screen .frame {
-  inset: 6% 7% 25%;
+  inset: 2% 7% 25%;
 }
 
 .camera-screen .camera-top {
+  top: auto;
   right: auto;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+}
+
+.camera-screen .camera-top > button {
+  position: relative;
+  z-index: 3;
 }
 
 .camera-screen .camera-top > span {
