@@ -100,15 +100,21 @@
   font-size: 11px;
 }
 
-.camera-screen .axis-sliders {width:min(100%,320px);margin:12px auto 0;padding:9px 11px;border:1px solid rgba(255,255,255,.18);border-radius:14px;background:rgba(0,0,0,.48)}
-.camera-screen .axis-row {display:grid;grid-template-columns:62px 1fr 42px;align-items:center;gap:8px}
-.camera-screen .axis-row + .axis-row {margin-top:9px}
-.camera-screen .axis-row > span,.camera-screen .axis-row > output {margin:0;color:rgba(255,255,255,.82);font-size:10px;font-variant-numeric:tabular-nums}
-.camera-screen .axis-row > span {text-align:left}
-.camera-screen .axis-row > output {text-align:right}
-.camera-screen .axis-track {position:relative;height:6px;border-radius:99px;background:linear-gradient(90deg,#ff6a61 0 39%,#b9ff3d 39% 61%,#ff6a61 61% 100%)}
-.camera-screen .axis-track::after {content:"";position:absolute;left:50%;top:-3px;width:1px;height:12px;background:rgba(255,255,255,.75)}
-.camera-screen .axis-track > i {position:absolute;left:50%;top:50%;width:16px;height:16px;border:2px solid white;border-radius:50%;background:#ff5d55;box-shadow:0 2px 8px rgba(0,0,0,.45);transform:translate(-50%,-50%);transition:left .08s,background .15s}
+.camera-screen .level-cluster {position:relative;width:176px;height:126px;margin:auto;padding:0 54px 38px 0}
+.camera-screen .level-cluster .level {margin:0}
+.camera-screen .horizontal-axis {position:absolute;left:0;bottom:0;width:82px}
+.camera-screen .vertical-axis {position:absolute;left:104px;top:0;width:60px;height:82px}
+.camera-screen .horizontal-axis > span,.camera-screen .vertical-axis > span,.camera-screen .horizontal-axis > output,.camera-screen .vertical-axis > output {position:absolute;margin:0;color:rgba(255,255,255,.86);font-size:10px;font-variant-numeric:tabular-nums}
+.camera-screen .horizontal-axis > span {left:0;top:11px}
+.camera-screen .horizontal-axis > output {right:0;top:11px}
+.camera-screen .vertical-axis > span {left:20px;top:0}
+.camera-screen .vertical-axis > output {left:20px;bottom:0}
+.camera-screen .axis-track {position:relative;border-radius:99px}
+.camera-screen .horizontal-axis .axis-track {width:82px;height:6px;background:linear-gradient(90deg,#ff6a61 0 39%,#b9ff3d 39% 61%,#ff6a61 61% 100%)}
+.camera-screen .vertical-axis .axis-track {width:6px;height:82px;background:linear-gradient(180deg,#ff6a61 0 39%,#b9ff3d 39% 61%,#ff6a61 61% 100%)}
+.camera-screen .horizontal-axis .axis-track::after {content:"";position:absolute;left:50%;top:-3px;width:1px;height:12px;background:rgba(255,255,255,.75)}
+.camera-screen .vertical-axis .axis-track::after {content:"";position:absolute;left:-3px;top:50%;width:12px;height:1px;background:rgba(255,255,255,.75)}
+.camera-screen .axis-track > i {position:absolute;left:50%;top:50%;width:16px;height:16px;border:2px solid white;border-radius:50%;background:#ff5d55;box-shadow:0 2px 8px rgba(0,0,0,.45);transform:translate(-50%,-50%);transition:left .08s,top .08s,background .15s}
 .camera-screen .axis-track.ok > i {background:var(--green)}
 
 .home .setup-visual .putter {
