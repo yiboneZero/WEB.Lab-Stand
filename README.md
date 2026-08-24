@@ -1,8 +1,8 @@
 # WEB.Lab-Stand
 
-퍼터를 정상 라이각으로 세운 상태에서 솔의 바닥 기준점부터 그립 끝까지 길이를 측정하는 모바일 웹앱입니다. 골프공의 공인 지름 `42.67mm`를 영상 속 기준 길이로 사용합니다.
+퍼터 길이와 라이각을 각각 독립적으로 측정하는 모바일 웹앱입니다. 길이는 골프공의 공인 지름 `42.67mm`를 기준으로 계산하고, 라이각은 헤드에 가까운 안정적인 샤프트 양쪽 엣지를 자동 검출해 계산합니다.
 
-- 서비스: https://yibonezero.github.io/WEB.Lab-Stand/
+- V3 서비스: https://yibonezero.github.io/WEB.Lab-Stand/v3/
 - 저장소: https://github.com/yiboneZero/WEB.Lab-Stand
 - 대상: iPhone Safari, Android Chrome
 
