@@ -107,7 +107,7 @@ function updateLevel(x,y){
 
 async function autoCountdown(){
   counting=true; const el=document.querySelector('#countdown');
-  for(let n=3;n>0;n--){ if(!counting)return; el.textContent=n; navigator.vibrate?.(35); await new Promise(r=>setTimeout(r,1000)); }
+  for(let n=3;n>0;n--){ if(!counting)return; el.textContent=n; await new Promise(r=>setTimeout(r,1000)); }
   if(counting) takePhoto();
 }
 function cancelCountdown(){ counting=false; document.querySelector('#countdown').textContent=''; }
