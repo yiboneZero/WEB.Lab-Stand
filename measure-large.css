@@ -297,6 +297,162 @@
   .camera-screen .camera-bottom .level-cluster {transform:scale(.74);transform-origin:center;margin-top:-16px;margin-bottom:-17px}
 }
 
+/* V3 balanced camera layout */
+.camera-screen .camera-top {
+  top: calc(10px + env(safe-area-inset-top));
+  left: 14px;
+  right: 14px;
+  bottom: auto;
+  z-index: 8;
+  display: block;
+  text-align: center;
+}
+
+.camera-screen .camera-top .level-eyebrow {
+  display: block;
+  color: rgba(255,255,255,.62);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .04em;
+}
+
+.camera-screen .camera-top > strong {
+  display: block;
+  margin-top: 3px;
+  color: white;
+  font-size: 17px;
+  line-height: 1.15;
+  text-shadow: 0 1px 5px rgba(0,0,0,.9);
+}
+
+.camera-screen .camera-top > small {
+  display: block;
+  min-height: 13px;
+  margin-top: 3px;
+  color: rgba(255,255,255,.7);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.camera-screen .camera-top .level-cluster {
+  position: relative;
+  width: 100%;
+  height: 112px;
+  margin: 8px 0 0;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.42);
+  border-radius: 16px;
+  background: rgba(8,10,9,.72);
+  box-shadow: 0 8px 24px rgba(0,0,0,.2);
+  backdrop-filter: blur(8px);
+  transform: none;
+}
+
+.camera-screen .camera-top .level-cluster::after {
+  content: "";
+  position: absolute;
+  left: 42%;
+  top: 15px;
+  bottom: 15px;
+  width: 1px;
+  background: rgba(255,255,255,.28);
+}
+
+.camera-screen .camera-top .level {
+  position: absolute;
+  left: 21%;
+  top: 50%;
+  width: 86px;
+  height: 86px;
+  margin: 0;
+  transform: translate(-50%,-50%);
+}
+
+.camera-screen .camera-top .vertical-axis {
+  position: absolute;
+  left: 47%;
+  top: 15px;
+  width: 46px;
+  height: 82px;
+}
+
+.camera-screen .camera-top .horizontal-axis {
+  position: absolute;
+  left: 60%;
+  right: 5%;
+  top: 46px;
+  bottom: auto;
+  width: auto;
+  transform: none;
+}
+
+.camera-screen .camera-top .axis-track {border-radius:99px}
+.camera-screen .camera-top .horizontal-axis .axis-track {
+  width: 100%;
+  height: 12px;
+  background: linear-gradient(90deg,#ff5d55 0 39%,#b9ff3d 39% 61%,#ff5d55 61% 100%);
+}
+.camera-screen .camera-top .vertical-axis .axis-track {
+  width: 12px;
+  height: 82px;
+  background: linear-gradient(180deg,#ff5d55 0 39%,#b9ff3d 39% 61%,#ff5d55 61% 100%);
+}
+.camera-screen .camera-top .axis-track > i {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+.camera-screen .camera-top .horizontal-axis .axis-track::after {top:-4px;height:20px;width:2px}
+.camera-screen .camera-top .vertical-axis .axis-track::after {left:-4px;width:20px;height:2px}
+.camera-screen .camera-top .horizontal-axis > span {left:0;top:18px}
+.camera-screen .camera-top .horizontal-axis > output {right:0;top:18px}
+.camera-screen .camera-top .vertical-axis > span {left:20px;top:0}
+.camera-screen .camera-top .vertical-axis > output {left:20px;bottom:0}
+
+.camera-screen .frame {
+  inset: 27% 14px 22%;
+}
+
+.camera-screen .capture-guide {
+  top: auto;
+  left: 14px;
+  right: 14px;
+  bottom: calc(66px + env(safe-area-inset-bottom));
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+.camera-screen .capture-guide b {font-size:13px}
+.camera-screen .capture-guide span {margin-top:3px;font-size:10px}
+
+.camera-screen .close-camera {
+  left: 14px;
+  right: 14px;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  width: auto;
+  height: 46px;
+  border: 1px solid rgba(255,255,255,.7);
+  border-radius: 14px;
+  background: rgba(255,255,255,.08);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+@media (max-height: 700px) {
+  .camera-screen .camera-top {top:calc(5px + env(safe-area-inset-top))}
+  .camera-screen .camera-top > small {display:none}
+  .camera-screen .camera-top .level-cluster {height:96px;margin-top:5px}
+  .camera-screen .camera-top .level {width:74px;height:74px}
+  .camera-screen .camera-top .vertical-axis {top:8px;height:78px}
+  .camera-screen .camera-top .vertical-axis .axis-track {height:78px}
+  .camera-screen .camera-top .horizontal-axis {top:39px}
+  .camera-screen .frame {inset:26% 14px 23%}
+  .camera-screen .capture-guide {bottom:calc(60px + env(safe-area-inset-bottom))}
+  .camera-screen .close-camera {height:42px;bottom:calc(7px + env(safe-area-inset-bottom))}
+}
+
 .home .setup-visual .putter {
   left: 50%;
   top: 12px;
