@@ -513,6 +513,8 @@ function detectShaftAutomatic(){
 }
 function analyzeLieAngle(){
   shaftDetection=detectShaftAutomatic();draw();
+  const resultCanvas=document.querySelector('#lieResultCanvas'),resultCtx=resultCanvas.getContext('2d'),maxSide=1400,previewScale=Math.min(1,maxSide/Math.max(photoCanvas.width,photoCanvas.height));
+  resultCanvas.width=Math.max(1,Math.round(photoCanvas.width*previewScale));resultCanvas.height=Math.max(1,Math.round(photoCanvas.height*previewScale));resultCtx.drawImage(photoCanvas,0,0,resultCanvas.width,resultCanvas.height);
   const angle=document.querySelector('#shaftAngle'),raw=document.querySelector('#shaftRaw'),correction=document.querySelector('#shaftCorrection'),confidence=document.querySelector('#shaftConfidence'),range=document.querySelector('#shaftRange');
   if(shaftDetection?.ok){angle.textContent=formatNearestHalf(shaftDetection.correctedAngle);raw.textContent=formatPreciseAngle(shaftDetection.rawAngle);correction.textContent=shaftDetection.roll==null?'사진 수평 기준':formatSensorCorrection(shaftDetection.roll);confidence.textContent=`${shaftDetection.confidence}%`;range.textContent=shaftDetection.range;}
   else{angle.textContent='—';raw.textContent='검출 실패';correction.textContent=captureHorizontalTilt==null?'사진 수평 기준':formatSensorCorrection(captureHorizontalTilt);confidence.textContent=shaftDetection?.reason||'샤프트를 찾지 못했습니다';range.textContent='—';}
