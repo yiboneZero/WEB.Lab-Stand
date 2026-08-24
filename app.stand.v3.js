@@ -165,7 +165,7 @@ function updateStep(){
   else if(points.length<2){title.textContent='검출된 골프공을 확인하세요';help.textContent='초록색 원이 공 외곽과 맞으면 확인하고, 아니면 다시 선택하세요.';}
   else if(points.length===2){stage=2;title.textContent='퍼터 그립 끝을 선택하세요';help.textContent='그립의 가장 아래쪽 끝을 한 번 터치하세요.';}
   else if(points.length===3){stage=3;title.textContent='퍼터 솔의 바닥 기준점을 선택하세요';help.textContent='퍼터 헤드 바닥면이 지면에 닿는 기준점을 터치하세요.';}
-  else{stage=4;title.textContent='선택점 위치를 보정하세요';help.textContent='주황색 점을 놓으면 두 점을 잇는 직선의 앞뒤에서 가장 가까운 엣지에 자동으로 맞춰집니다.';}
+  else{stage=4;title.textContent='선택점 위치를 보정하세요';help.textContent='그립은 가까운 끝 경계에, 헤드는 골프공으로 추정한 지면선 가까이에 자동으로 맞춰집니다.';}
   panel.hidden=points.length<2;confirm.disabled=points.length<4;
   if(points.length===2){panelTitle.textContent='퍼터 그립 끝을 선택하세요';panelHelp.textContent='사진에서 그립의 가장 아래쪽 끝을 터치하세요.';confirm.textContent='두 점을 선택하면 측정할 수 있습니다';}
   else if(points.length===3){panelTitle.textContent='퍼터 솔의 바닥 기준점을 선택하세요';panelHelp.textContent='헤드 바닥면이 지면에 닿는 기준점을 터치하세요.';confirm.textContent='바닥 기준점을 선택해 주세요';}
@@ -332,6 +332,12 @@ function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
 function formatNearestHalf(value){return (Math.round((value+Number.EPSILON)*2)/2).toFixed(1);}
 function formatPreciseAngle(value){return `${String(value)}°`;}
 function formatSensorCorrection(value){return `${value>=0?'+':''}${String(value)}°`;}
+function inferredGroundReference(){
+  if(points.length<2)return null;
+  const ballCenter={x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2},ballRadius=distance(points[0],points[1])/2;
+  const roll=(captureHorizontalTilt||0)*Math.PI/180,down={x:-Math.sin(roll),y:Math.cos(roll)};
+  return{point:{x:ballCenter.x+down.x*ballRadius,y:ballCenter.y+down.y*ballRadius},down};
+}
 function snapPutterEndpoint(index){
   if(!image||points.length<4||index<2||index>3)return false;
   const point=points[index],other=points[index===2?3:2],lineLength=distance(point,other);if(lineLength<40)return false;
@@ -364,7 +370,9 @@ function snapPutterEndpoint(index){
     candidates.push({x:point.x+ux*s,y:point.y+uy*s,s,strength,support:rays.size});
   }
   if(!candidates.length)return false;
-  candidates.sort((a,b)=>Math.abs(a.s)-Math.abs(b.s)||b.support-a.support||b.strength-a.strength);
+  const ground=index===3?inferredGroundReference():null;
+  if(ground)for(const candidate of candidates)candidate.groundDistance=Math.abs((candidate.x-ground.point.x)*ground.down.x+(candidate.y-ground.point.y)*ground.down.y);
+  candidates.sort((a,b)=>ground?(a.groundDistance-b.groundDistance||Math.abs(a.s)-Math.abs(b.s)||b.support-a.support||b.strength-a.strength):(Math.abs(a.s)-Math.abs(b.s)||b.support-a.support||b.strength-a.strength));
   const best=candidates[0];if(!best||Math.abs(best.s)<scanStep*2)return false;
   points[index]={x:Math.max(0,Math.min(photoCanvas.width,best.x)),y:Math.max(0,Math.min(photoCanvas.height,best.y))};return true;
 }
