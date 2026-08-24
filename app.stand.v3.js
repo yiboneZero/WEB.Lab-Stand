@@ -15,6 +15,10 @@ let currentHorizontalTilt = 0, captureHorizontalTilt = null, shaftDetection = nu
 let measurementMode = 'length';
 
 function show(id){ screens.forEach(s=>s.classList.toggle('active',s.id===id)); }
+function saveResult(type,value){try{localStorage.setItem(`webLabStand.${type}`,value);}catch{}renderSavedResults();}
+function renderSavedResults(){
+  for(const [type,id] of [['length','lastLengthResult'],['lie','lastLieResult']]){let value='';try{value=localStorage.getItem(`webLabStand.${type}`)||'';}catch{}const el=document.querySelector(`#${id}`);el.hidden=!value;if(value)el.querySelector('strong').textContent=value;}
+}
 function chooseMode(mode){
   measurementMode=mode;
   const lie=mode==='lie';
@@ -516,7 +520,7 @@ function analyzeLieAngle(){
   const resultCanvas=document.querySelector('#lieResultCanvas'),resultCtx=resultCanvas.getContext('2d'),maxSide=1400,previewScale=Math.min(1,maxSide/Math.max(photoCanvas.width,photoCanvas.height));
   resultCanvas.width=Math.max(1,Math.round(photoCanvas.width*previewScale));resultCanvas.height=Math.max(1,Math.round(photoCanvas.height*previewScale));resultCtx.drawImage(photoCanvas,0,0,resultCanvas.width,resultCanvas.height);
   const angle=document.querySelector('#shaftAngle'),raw=document.querySelector('#shaftRaw'),correction=document.querySelector('#shaftCorrection'),confidence=document.querySelector('#shaftConfidence'),range=document.querySelector('#shaftRange');
-  if(shaftDetection?.ok){angle.textContent=formatNearestHalf(shaftDetection.correctedAngle);raw.textContent=formatPreciseAngle(shaftDetection.rawAngle);correction.textContent=shaftDetection.roll==null?'사진 수평 기준':formatSensorCorrection(shaftDetection.roll);confidence.textContent=`${shaftDetection.confidence}%`;range.textContent=shaftDetection.range;}
+  if(shaftDetection?.ok){const result=`${formatNearestHalf(shaftDetection.correctedAngle)}°`;angle.textContent=formatNearestHalf(shaftDetection.correctedAngle);raw.textContent=formatPreciseAngle(shaftDetection.rawAngle);correction.textContent=shaftDetection.roll==null?'사진 수평 기준':formatSensorCorrection(shaftDetection.roll);confidence.textContent=`${shaftDetection.confidence}%`;range.textContent=shaftDetection.range;saveResult('lie',result);}
   else{angle.textContent='—';raw.textContent='검출 실패';correction.textContent=captureHorizontalTilt==null?'사진 수평 기준':formatSensorCorrection(captureHorizontalTilt);confidence.textContent=shaftDetection?.reason||'샤프트를 찾지 못했습니다';range.textContent='—';}
   document.querySelector('#lieWarning').hidden=!(shaftDetection?.ok&&shaftDetection.correctedAngle>80);show('lieResultScreen');
 }
@@ -528,7 +532,7 @@ function calculate(){
   document.querySelector('#resultIn').textContent=formatNearestHalf(rawMm/25.4);
   document.querySelector('#ballPixelDiameter').textContent=`${ballPx.toFixed(1)} px`;
   document.querySelector('#putterPixelLength').textContent=`${putterPx.toFixed(1)} px`;
-  shaftDetection=null;draw();show('lengthResultScreen');
+  saveResult('length',`${formatNearestHalf(rawMm/10)} cm`);shaftDetection=null;draw();show('lengthResultScreen');
 }
 
 function canvasPoint(e){const r=photoCanvas.getBoundingClientRect();return{x:(e.clientX-r.left)*photoCanvas.width/r.width,y:(e.clientY-r.top)*photoCanvas.height/r.height,scale:photoCanvas.width/r.width};}
@@ -558,6 +562,7 @@ document.querySelector('#startButton').addEventListener('click',startCamera);
 document.querySelector('#closeCamera').addEventListener('click',()=>{stopCamera();show('homeScreen');});
 document.querySelector('#retakeButton').addEventListener('click',()=>{points=[];show('homeScreen');});
 document.querySelectorAll('.new-measure').forEach(button=>button.addEventListener('click',()=>{points=[];shaftDetection=null;show('homeScreen');}));
+document.querySelectorAll('.back-to-modes').forEach(button=>button.addEventListener('click',()=>{points=[];shaftDetection=null;show('modeScreen');}));
 document.querySelector('#fileInput').addEventListener('change',e=>{
   const input=e.currentTarget,file=input.files?.[0];
   if(!file)return;
@@ -567,3 +572,4 @@ document.querySelector('#fileInput').addEventListener('change',e=>{
   loadImage(objectUrl,()=>URL.revokeObjectURL(objectUrl));input.value='';
 });
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&stream)stopCamera();});
+renderSavedResults();
