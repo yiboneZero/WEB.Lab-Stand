@@ -304,34 +304,87 @@ function findBallInRegion(pixels,width,height,x,y,roiRadius){
   }
   candidates.sort((a,b)=>b.regionScore-a.regionScore);return candidates[0]||null;
 }
+function pixelRgb(pixels,width,x,y){
+  const index=(Math.round(y)*width+Math.round(x))*4;
+  return[pixels[index],pixels[index+1],pixels[index+2]];
+}
+function colorDistance(a,b){
+  const ar=(a[0]+1)/256,ag=(a[1]+1)/256,br=(b[0]+1)/256,bg=(b[1]+1)/256;
+  const ay=a[0]*.299+a[1]*.587+a[2]*.114,by=b[0]*.299+b[1]*.587+b[2]*.114;
+  const acb=(a[2]-ay)*.565,acr=(a[0]-ay)*.713,bcb=(b[2]-by)*.565,bcr=(b[0]-by)*.713;
+  return Math.hypot((ay-by)*.38,(acb-bcb)*1.15,(acr-bcr)*1.15,(ar-ag-br+bg)*10);
+}
+function circleFromThreePoints(a,b,c){
+  const d=2*(a.x*(b.y-c.y)+b.x*(c.y-a.y)+c.x*(a.y-b.y));if(Math.abs(d)<1e-6)return null;
+  const aa=a.x*a.x+a.y*a.y,bb=b.x*b.x+b.y*b.y,cc=c.x*c.x+c.y*c.y;
+  const x=(aa*(b.y-c.y)+bb*(c.y-a.y)+cc*(a.y-b.y))/d;
+  const y=(aa*(c.x-b.x)+bb*(a.x-c.x)+cc*(b.x-a.x))/d;
+  const radius=Math.hypot(a.x-x,a.y-y);
+  return Number.isFinite(radius)&&radius>0?{x,y,radius}:null;
+}
+function detectStandingBallFromArcs(pixels,width,height,x,y,roiRadius){
+  const step=Math.max(1,Math.round(roiRadius/95)),left=Math.max(step,Math.floor(x-roiRadius)),right=Math.min(width-step-1,Math.ceil(x+roiRadius));
+  const top=Math.max(step,Math.floor(y-roiRadius)),bottom=Math.min(height-step-1,Math.ceil(y+roiRadius)),gradients=[],samples=[];
+  const cols=Math.floor((right-left)/step)+1,rows=Math.floor((bottom-top)/step)+1,key=(gx,gy)=>gy*cols+gx;
+  for(let gy=0;gy<rows;gy++)for(let gx=0;gx<cols;gx++){
+    const px=left+gx*step,py=top+gy*step;if(Math.hypot(px-x,py-y)>roiRadius*.94){gradients[key(gx,gy)]=0;continue;}
+    const horizontal=colorDistance(pixelRgb(pixels,width,px-step,py),pixelRgb(pixels,width,px+step,py));
+    const vertical=colorDistance(pixelRgb(pixels,width,px,py-step),pixelRgb(pixels,width,px,py+step));
+    const gradient=Math.hypot(horizontal,vertical);gradients[key(gx,gy)]=gradient;samples.push(gradient);
+  }
+  if(samples.length<60)return null;
+  samples.sort((a,b)=>a-b);const middle=samples[Math.floor(samples.length*.5)],high=samples[Math.floor(samples.length*.86)];
+  const edgeThreshold=Math.max(11,middle+(high-middle)*.58),upper=[],leftSide=[],rightSide=[];
+  for(let gy=0;gy<rows;gy++)for(let gx=0;gx<cols;gx++){
+    if(gradients[key(gx,gy)]<edgeThreshold)continue;
+    const point={x:left+gx*step,y:top+gy*step};
+    if(point.y<y+roiRadius*.12)upper.push(point);
+    if(point.x<x+roiRadius*.08)leftSide.push(point);
+    if(point.x>x-roiRadius*.08)rightSide.push(point);
+  }
+  if(upper.length<8||leftSide.length<8||rightSide.length<8)return null;
+  let seed=2166136261,best=null,bestScore=-Infinity;
+  const randomIndex=length=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed%length;};
+  for(let trial=0;trial<900;trial++){
+    const circle=circleFromThreePoints(upper[randomIndex(upper.length)],leftSide[randomIndex(leftSide.length)],rightSide[randomIndex(rightSide.length)]);if(!circle)continue;
+    if(circle.radius<roiRadius*.055||circle.radius>roiRadius*.48||Math.hypot(circle.x-x,circle.y-y)>roiRadius*.62)continue;
+    let topHits=0,topTotal=0,leftHits=0,leftTotal=0,rightHits=0,rightTotal=0;
+    for(let i=0;i<84;i++){
+      const angle=-Math.PI+i*Math.PI*2/84;if(Math.sin(angle)>.52)continue;
+      const px=circle.x+Math.cos(angle)*circle.radius,py=circle.y+Math.sin(angle)*circle.radius;
+      const gx=Math.round((px-left)/step),gy=Math.round((py-top)/step);if(gx<0||gy<0||gx>=cols||gy>=rows)continue;
+      const hit=gradients[key(gx,gy)]>=edgeThreshold*.72;
+      if(Math.sin(angle)<-.42){topTotal++;if(hit)topHits++;}
+      if(Math.cos(angle)<-.5){leftTotal++;if(hit)leftHits++;}
+      if(Math.cos(angle)>.5){rightTotal++;if(hit)rightHits++;}
+    }
+    const topCoverage=topHits/Math.max(1,topTotal),leftCoverage=leftHits/Math.max(1,leftTotal),rightCoverage=rightHits/Math.max(1,rightTotal);
+    if(topCoverage<.24||leftCoverage<.2||rightCoverage<.2)continue;
+    const score=topCoverage*1.2+leftCoverage+rightCoverage-Math.hypot(circle.x-x,circle.y-y)/roiRadius*.22;
+    if(score>bestScore){bestScore=score;best=circle;}
+  }
+  if(!best)return null;
+  const arcPoints=[];
+  for(let gy=0;gy<rows;gy++)for(let gx=0;gx<cols;gx++){
+    if(gradients[key(gx,gy)]<edgeThreshold*.72)continue;
+    const px=left+gx*step,py=top+gy*step,angle=Math.atan2(py-best.y,px-best.x);
+    if(Math.sin(angle)>.52)continue;
+    if(Math.abs(Math.hypot(px-best.x,py-best.y)-best.radius)<=Math.max(step*2.2,best.radius*.075))arcPoints.push({x:px,y:py});
+  }
+  const fitted=robustCircle(arcPoints,step),stable=fitted&&fitted.error<.065&&Math.hypot(fitted.x-best.x,fitted.y-best.y)<best.radius*.14&&Math.abs(fitted.radius-best.radius)<best.radius*.16;
+  const circle=stable?fitted:best;
+  return{...circle,baseRadius:circle.radius,score:bestScore,arcPointCount:arcPoints.length,inferredBottom:circle.y+circle.radius,method:'standing-upper-side-arcs'};
+}
 function detectBallAt(x,y){
   const roiRadius=Math.round(Math.min(photoCanvas.width,photoCanvas.height)*BALL_SEARCH_RADIUS_RATIO);
   searchRegion=null;ballCandidate=null;draw();
   const pixels=ctx.getImageData(0,0,photoCanvas.width,photoCanvas.height).data;
   searchRegion={x,y,radius:roiRadius};
-  const contrastBall=findBallInRegion(pixels,photoCanvas.width,photoCanvas.height,x,y,roiRadius);
+  const contrastBall=detectStandingBallFromArcs(pixels,photoCanvas.width,photoCanvas.height,x,y,roiRadius);
   if(contrastBall){
-    ballCandidate=contrastBall;draw();document.querySelector('#ballSize').value='100';document.querySelector('#ballSizeValue').textContent='100%';document.querySelector('#ballConfirm').hidden=false;document.querySelector('#stepTitle').textContent='골프공을 찾았습니다';document.querySelector('#stepHelp').textContent='외곽점에 원의 방정식을 맞췄습니다. 초록색 원을 확인하세요.';return;
+    ballCandidate=contrastBall;draw();document.querySelector('#ballSize').value='100';document.querySelector('#ballSizeValue').textContent='100%';document.querySelector('#ballConfirm').hidden=false;document.querySelector('#stepTitle').textContent='골프공을 찾았습니다';document.querySelector('#stepHelp').textContent='상단과 좌우 원호로 중심을 잡고 보이지 않는 하단을 복원했습니다.';return;
   }
-  const edgeRadii=[],edgeScores=[];
-  const minR=Math.max(8,Math.round(roiRadius*.12)),maxR=Math.round(roiRadius*.78);
-  for(let a=0;a<Math.PI*2;a+=Math.PI/36){
-    let rayRadius=0,rayScore=0;
-    for(let r=minR;r<=maxR;r+=2){
-      const cs=Math.cos(a),sn=Math.sin(a),inner=r-3,outer=r+3;
-      const x1=Math.round(x+cs*inner),y1=Math.round(y+sn*inner),x2=Math.round(x+cs*outer),y2=Math.round(y+sn*outer);
-      if(x1<0||y1<0||x2<0||y2<0||x1>=photoCanvas.width||x2>=photoCanvas.width||y1>=photoCanvas.height||y2>=photoCanvas.height)continue;
-      const gradient=Math.abs(luminance(pixels,(y1*photoCanvas.width+x1)*4)-luminance(pixels,(y2*photoCanvas.width+x2)*4));
-      const score=gradient*(.8+.2*r/maxR);
-      if(score>rayScore){rayScore=score;rayRadius=r;}
-    }
-    if(rayRadius){edgeRadii.push(rayRadius);edgeScores.push(rayScore);}
-  }
-  const bestRadius=median(edgeRadii),deviation=median(edgeRadii.map(r=>Math.abs(r-bestRadius))),confidence=median(edgeScores);
-  ballCandidate=bestRadius&&confidence>7&&deviation<bestRadius*.38?{x,y,radius:bestRadius,baseRadius:bestRadius,score:confidence}:null;
-  draw();
-  if(ballCandidate){document.querySelector('#ballSize').value='100';document.querySelector('#ballSizeValue').textContent='100%';document.querySelector('#ballConfirm').hidden=false;document.querySelector('#stepTitle').textContent='골프공을 찾았습니다';document.querySelector('#stepHelp').textContent='슬라이더로 초록색 원을 실제 외곽에 정확히 맞추세요.';}
-  else{ballMode='auto';searchRegion=null;alert('골프공 테두리를 찾지 못했습니다. 골프공 중심을 다시 터치하거나 다시 촬영해 주세요.');draw();updateStep();}
+  ballMode='auto';searchRegion=null;alert('공의 상단과 좌우 원호를 충분히 찾지 못했습니다. 공 주변을 다시 터치해 주세요.');draw();updateStep();
 }
 function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
 function formatNearestHalf(value){return (Math.round((value+Number.EPSILON)*2)/2).toFixed(1);}
