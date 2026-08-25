@@ -2,6 +2,7 @@ const BALL_MM = 42.67;
 const BALL_SEARCH_RADIUS_RATIO = .098;
 const TILT_LIMIT = 1.5;
 const STABLE_MS = 1000;
+const DISPLAY_SMOOTHING = .25;
 const screens = [...document.querySelectorAll('.screen')];
 const video = document.querySelector('#camera');
 const captureCanvas = document.querySelector('#captureCanvas');
@@ -12,6 +13,7 @@ let ballMode = 'auto', ballCandidate = null, searchRegion = null;
 let draggedPoint = -1;
 let dragOffset = {x:0,y:0};
 let currentHorizontalTilt = 0, captureHorizontalTilt = null, shaftDetection = null;
+let displayTiltX = null, displayTiltY = null;
 let measurementMode = 'length';
 
 function show(id){ screens.forEach(s=>s.classList.toggle('active',s.id===id)); }
@@ -61,7 +63,7 @@ function onMotion(e){
 }
 
 async function startCamera(){
-  captured=false; stableSince=0; counting=false; gravityAvailable=false; currentHorizontalTilt=0; captureHorizontalTilt=null; shaftDetection=null; show('cameraScreen');
+  captured=false; stableSince=0; counting=false; gravityAvailable=false; currentHorizontalTilt=0; captureHorizontalTilt=null; shaftDetection=null; displayTiltX=null; displayTiltY=null; show('cameraScreen');
   try{
     await requestSensors();
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
@@ -85,7 +87,9 @@ function updateLevel(x,y){
   const detail=document.querySelector('#levelDetail');
   const horizontalTrack=document.querySelector('#horizontalTrack'),verticalTrack=document.querySelector('#verticalTrack');
   const horizontalMarker=document.querySelector('#horizontalMarker'),verticalMarker=document.querySelector('#verticalMarker');
-  const displayX=Math.round(x*10)/10,displayY=Math.round(y*10)/10;
+  displayTiltX=displayTiltX==null?x:displayTiltX*(1-DISPLAY_SMOOTHING)+x*DISPLAY_SMOOTHING;
+  displayTiltY=displayTiltY==null?y:displayTiltY*(1-DISPLAY_SMOOTHING)+y*DISPLAY_SMOOTHING;
+  const displayX=Math.round(displayTiltX*10)/10,displayY=Math.round(displayTiltY*10)/10;
   const radarLimit=8,normalizedX=Math.max(-1,Math.min(1,displayX/radarLimit)),normalizedY=Math.max(-1,Math.min(1,displayY/radarLimit));
   level.querySelector('i').style.transform=`translate(${normalizedX*25}px,${normalizedY*25}px)`;
   horizontalMarker.style.transform=`translate(-50%,-50%) translate3d(${normalizedX*101.2}px,0,0)`;
@@ -96,12 +100,12 @@ function updateLevel(x,y){
   const ok=Math.abs(x)<=TILT_LIMIT&&Math.abs(y)<=TILT_LIMIT;
   level.classList.toggle('ok',ok);
   if(ok){
-    title.textContent='수직이 맞았습니다'; detail.textContent=`좌우 ${x.toFixed(1)}° · 앞뒤 ${y.toFixed(1)}° — 움직이지 마세요`;
+    title.textContent='수직이 맞았습니다'; detail.textContent=`좌우 ${displayX.toFixed(1)}° · 앞뒤 ${displayY.toFixed(1)}° — 움직이지 마세요`;
     if(!stableSince) stableSince=performance.now();
     if(performance.now()-stableSince>=STABLE_MS&&performance.now()-lastMotion>=STABLE_MS&&!counting) autoCountdown();
   }else{
     stableSince=0; cancelCountdown(); title.textContent='휴대폰을 수직으로 세워주세요';
-    detail.textContent=`좌우 ${x.toFixed(1)}° · 앞뒤 ${y.toFixed(1)}° (허용 ±${TILT_LIMIT}°)`;
+    detail.textContent=`좌우 ${displayX.toFixed(1)}° · 앞뒤 ${displayY.toFixed(1)}° (허용 ±${TILT_LIMIT}°)`;
   }
 }
 
