@@ -1,6 +1,7 @@
 const BALL_MM = 42.67;
 const BALL_SEARCH_RADIUS_RATIO = .098;
-const TILT_LIMIT = 1.5;
+const HORIZONTAL_TILT_LIMIT = 1.5;
+const VERTICAL_TILT_LIMIT = 1;
 const STABLE_MS = 1000;
 const DISPLAY_SMOOTHING = .25;
 const screens = [...document.querySelectorAll('.screen')];
@@ -96,8 +97,8 @@ function updateLevel(x,y){
   verticalMarker.style.transform=`translate(-50%,-50%) translate3d(0,${normalizedY*37.72}px,0)`;
   document.querySelector('#horizontalValue').textContent=`${displayX>0?'+':''}${displayX.toFixed(1)}°`;
   document.querySelector('#verticalValue').textContent=`${displayY>0?'+':''}${displayY.toFixed(1)}°`;
-  horizontalTrack.classList.toggle('ok',Math.abs(x)<=TILT_LIMIT);verticalTrack.classList.toggle('ok',Math.abs(y)<=TILT_LIMIT);
-  const ok=Math.abs(x)<=TILT_LIMIT&&Math.abs(y)<=TILT_LIMIT;
+  horizontalTrack.classList.toggle('ok',Math.abs(x)<=HORIZONTAL_TILT_LIMIT);verticalTrack.classList.toggle('ok',Math.abs(y)<=VERTICAL_TILT_LIMIT);
+  const ok=Math.abs(x)<=HORIZONTAL_TILT_LIMIT&&Math.abs(y)<=VERTICAL_TILT_LIMIT;
   level.classList.toggle('ok',ok);
   if(ok){
     title.textContent='수직이 맞았습니다'; detail.textContent=`좌우 ${displayX.toFixed(1)}° · 앞뒤 ${displayY.toFixed(1)}° — 움직이지 마세요`;
@@ -105,7 +106,7 @@ function updateLevel(x,y){
     if(performance.now()-stableSince>=STABLE_MS&&performance.now()-lastMotion>=STABLE_MS&&!counting) autoCountdown();
   }else{
     stableSince=0; cancelCountdown(); title.textContent='휴대폰을 수직으로 세워주세요';
-    detail.textContent=`좌우 ${displayX.toFixed(1)}° · 앞뒤 ${displayY.toFixed(1)}° (허용 ±${TILT_LIMIT}°)`;
+    detail.textContent=`좌우 ${displayX.toFixed(1)}° (±${HORIZONTAL_TILT_LIMIT.toFixed(1)}°) · 앞뒤 ${displayY.toFixed(1)}° (±${VERTICAL_TILT_LIMIT.toFixed(1)}°)`;
   }
 }
 
