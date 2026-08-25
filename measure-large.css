@@ -420,7 +420,7 @@
   top: auto;
   left: 14px;
   right: 14px;
-  bottom: calc(66px + env(safe-area-inset-bottom));
+  bottom: calc(12% + env(safe-area-inset-bottom));
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -457,7 +457,7 @@
     bottom: 20%;
     left: 14px;
   }
-  .camera-screen .capture-guide {bottom:calc(60px + env(safe-area-inset-bottom))}
+  .camera-screen .capture-guide {bottom:calc(12% + env(safe-area-inset-bottom))}
   .camera-screen .close-camera {height:42px;bottom:calc(7px + env(safe-area-inset-bottom))}
 }
 
