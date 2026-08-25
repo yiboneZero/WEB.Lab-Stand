@@ -27,11 +27,12 @@ const sandbox = {
 };
 vm.createContext(sandbox);
 const source = fs.readFileSync('app.v3.js', 'utf8');
-vm.runInContext(`${source}\nthis.result=detectStandingBallFromArcs(this.syntheticPixels,${width},${height},${center.x},${center.y},72);`, Object.assign(sandbox, {syntheticPixels: pixels}));
+vm.runInContext(`${source}\nthis.result=detectStandingBallFromArcs(this.syntheticPixels,${width},${height},${center.x},${center.y},72);this.defaultScale=BALL_DEFAULT_SCALE;`, Object.assign(sandbox, {syntheticPixels: pixels}));
 
 assert(sandbox.result, 'standing ball detector should restore an occluded ball');
 assert(Math.abs(sandbox.result.x - center.x) <= 3, `unexpected center x: ${sandbox.result.x}`);
 assert(Math.abs(sandbox.result.y - center.y) <= 3, `unexpected center y: ${sandbox.result.y}`);
 assert(Math.abs(sandbox.result.radius - radius) <= 3, `expected radius about ${radius}, got ${sandbox.result.radius}`);
 assert.strictEqual(sandbox.result.method, 'standing-upper-side-arcs');
+assert.strictEqual(sandbox.defaultScale, 1.06, 'automatic ball size should default to 106%');
 console.log('Synthetic standing ball detection test passed.');

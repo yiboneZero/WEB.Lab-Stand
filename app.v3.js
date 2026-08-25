@@ -1,7 +1,8 @@
 const BALL_MM = 42.67;
 const BALL_SEARCH_RADIUS_RATIO = .098;
+const BALL_DEFAULT_SCALE = 1.06;
 const HORIZONTAL_TILT_LIMIT = 1.5;
-const VERTICAL_TILT_LIMIT = 1;
+const VERTICAL_TILT_LIMIT = 1.5;
 const STABLE_MS = 1000;
 const DISPLAY_SMOOTHING = .25;
 const screens = [...document.querySelectorAll('.screen')];
@@ -382,7 +383,7 @@ function detectBallAt(x,y){
   searchRegion={x,y,radius:roiRadius};
   const contrastBall=detectStandingBallFromArcs(pixels,photoCanvas.width,photoCanvas.height,x,y,roiRadius);
   if(contrastBall){
-    ballCandidate=contrastBall;draw();document.querySelector('#ballSize').value='100';document.querySelector('#ballSizeValue').textContent='100%';document.querySelector('#ballConfirm').hidden=false;document.querySelector('#stepTitle').textContent='골프공을 찾았습니다';document.querySelector('#stepHelp').textContent='상단과 좌우 원호로 중심을 잡고 보이지 않는 하단을 복원했습니다.';return;
+    ballCandidate={...contrastBall,radius:contrastBall.baseRadius*BALL_DEFAULT_SCALE};draw();document.querySelector('#ballSize').value='106';document.querySelector('#ballSizeValue').textContent='106%';document.querySelector('#ballConfirm').hidden=false;document.querySelector('#stepTitle').textContent='골프공을 찾았습니다';document.querySelector('#stepHelp').textContent='상단과 좌우 원호로 중심을 잡고 보이지 않는 하단을 복원했습니다.';return;
   }
   ballMode='auto';searchRegion=null;alert('공의 상단과 좌우 원호를 충분히 찾지 못했습니다. 공 주변을 다시 터치해 주세요.');draw();updateStep();
 }
