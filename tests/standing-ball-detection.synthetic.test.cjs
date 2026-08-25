@@ -34,5 +34,5 @@ assert(Math.abs(sandbox.result.x - center.x) <= 3, `unexpected center x: ${sandb
 assert(Math.abs(sandbox.result.y - center.y) <= 3, `unexpected center y: ${sandbox.result.y}`);
 assert(Math.abs(sandbox.result.radius - radius) <= 3, `expected radius about ${radius}, got ${sandbox.result.radius}`);
 assert.strictEqual(sandbox.result.method, 'standing-upper-side-arcs');
-assert.strictEqual(sandbox.defaultScale, 1.06, 'automatic ball size should default to 106%');
+assert.strictEqual(sandbox.defaultScale, 1.02, 'automatic ball size should default to 102%');
 console.log('Synthetic standing ball detection test passed.');
