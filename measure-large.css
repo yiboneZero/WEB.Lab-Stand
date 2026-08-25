@@ -410,7 +410,10 @@
 .camera-screen .camera-top .vertical-axis > output {left:20px;bottom:0}
 
 .camera-screen .frame {
-  inset: 23% 14px 25%;
+  top: calc(180px + env(safe-area-inset-top));
+  right: 14px;
+  bottom: 25%;
+  left: 14px;
 }
 
 .camera-screen .capture-guide {
@@ -448,7 +451,12 @@
   .camera-screen .camera-top .vertical-axis {top:8px;height:78px}
   .camera-screen .camera-top .vertical-axis .axis-track {height:78px}
   .camera-screen .camera-top .horizontal-axis {top:39px}
-  .camera-screen .frame {inset:23% 14px 25%}
+  .camera-screen .frame {
+    top: calc(148px + env(safe-area-inset-top));
+    right: 14px;
+    bottom: 25%;
+    left: 14px;
+  }
   .camera-screen .capture-guide {bottom:calc(60px + env(safe-area-inset-bottom))}
   .camera-screen .close-camera {height:42px;bottom:calc(7px + env(safe-area-inset-bottom))}
 }
