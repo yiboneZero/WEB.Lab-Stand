@@ -36,7 +36,7 @@ const sandbox = {
   Image: function Image() {}, URL: {createObjectURL: noop, revokeObjectURL: noop}, setTimeout: noop
 };
 vm.createContext(sandbox);
-const source = fs.readFileSync('app.stand.v3.js', 'utf8');
+const source = fs.readFileSync('app.v3.js', 'utf8');
 vm.runInContext(`${source}\nimage={};photoCanvas.width=${width};photoCanvas.height=${height};this.result=detectShaftAutomatic();`, sandbox);
 assert(sandbox.result, 'automatic detector should return a result');
 assert(sandbox.result.ok, `automatic detector failed: ${sandbox.result.reason}`);

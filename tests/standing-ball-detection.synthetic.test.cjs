@@ -26,7 +26,7 @@ const sandbox = {
   Image: function Image() {}, URL: {createObjectURL: noop, revokeObjectURL: noop}, setTimeout: noop
 };
 vm.createContext(sandbox);
-const source = fs.readFileSync('app.stand.v3.js', 'utf8');
+const source = fs.readFileSync('app.v3.js', 'utf8');
 vm.runInContext(`${source}\nthis.result=detectStandingBallFromArcs(this.syntheticPixels,${width},${height},${center.x},${center.y},72);`, Object.assign(sandbox, {syntheticPixels: pixels}));
 
 assert(sandbox.result, 'standing ball detector should restore an occluded ball');
